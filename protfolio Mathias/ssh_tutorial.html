@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SSH — Documentation technique</title>
+    <meta name="description" content="Tutoriel SSH — installation, configuration, clés, agent, 2FA, mobile." />
+    <style>
+      :root {
+        --green: #00ff41;
+        --bg: #0a0a0a;
+        --panel: #0f1a0f;
+        --border: rgba(0, 255, 65, 0.15);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: #fff;
+        font-family: "Courier New", "Lucida Console", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", monospace;
+      }
+
+      button {
+        font-family: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+      }
+
+      /* Cover */
+      .cover {
+        min-height: 100vh;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        padding: 0 24px;
+      }
+
+      .scanlines {
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          0deg,
+          rgba(0, 255, 65, 0.02) 0px,
+          rgba(0, 255, 65, 0.02) 1px,
+          transparent 1px,
+          transparent 4px
+        );
+        pointer-events: none;
+      }
+
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(0, 255, 65, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 255, 65, 0.04) 1px, transparent 1px);
+        background-size: 30px 30px;
+        pointer-events: none;
+      }
+
+      .glow {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 600px;
+        height: 400px;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(0, 255, 65, 0.06) 0%, transparent 70%);
+        pointer-events: none;
+      }
+
+      .cover-inner {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        max-width: 760px;
+        width: 100%;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid var(--border);
+        background: rgba(0, 255, 65, 0.05);
+        border-radius: 4px;
+        padding: 8px 20px;
+        margin-bottom: 36px;
+        color: var(--green);
+        font-size: 11px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        user-select: none;
+      }
+
+      .ssh-title {
+        font-size: clamp(64px, 10vw, 100px);
+        font-weight: 900;
+        letter-spacing: 8px;
+        color: var(--green);
+        text-shadow: 0 0 20px var(--green), 0 0 40px rgba(0, 255, 65, 0.4);
+        line-height: 1;
+      }
+
+      .ssh-sub {
+        color: rgba(0, 255, 65, 0.4);
+        font-size: 12px;
+        letter-spacing: 10px;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+
+      .desc {
+        color: rgba(0, 255, 65, 0.5);
+        font-size: 13px;
+        line-height: 1.9;
+        max-width: 560px;
+        margin: 28px auto 48px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 52px;
+      }
+
+      .pill {
+        background: rgba(0, 255, 65, 0.04);
+        border: 1px solid rgba(0, 255, 65, 0.12);
+        border-radius: 3px;
+        padding: 5px 14px;
+        color: rgba(0, 255, 65, 0.55);
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+      }
+
+      .start-btn {
+        background: transparent;
+        border: 1px solid var(--green);
+        color: var(--green);
+        font-weight: 700;
+        font-size: 13px;
+        padding: 14px 44px;
+        cursor: pointer;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.2), inset 0 0 20px rgba(0, 255, 65, 0.05);
+        transition: all 0.2s;
+      }
+
+      .start-btn:hover {
+        background: rgba(0, 255, 65, 0.1);
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.4), inset 0 0 20px rgba(0, 255, 65, 0.1);
+      }
+
+      .tiny {
+        margin-top: 18px;
+        color: rgba(0, 255, 65, 0.2);
+        font-size: 11px;
+        letter-spacing: 2px;
+      }
+
+      /* Tutorial layout */
+      .tutorial {
+        min-height: 100vh;
+        display: flex;
+        background: var(--bg);
+      }
+
+      .sidebar {
+        width: 270px;
+        flex-shrink: 0;
+        background: #080d08;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+
+      .sidebar-header {
+        padding: 20px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .logo {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--green);
+        font-weight: 900;
+        font-size: 13px;
+        box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+        user-select: none;
+      }
+
+      .home-btn {
+        background: transparent;
+        border: 1px solid rgba(0, 255, 65, 0.2);
+        color: rgba(0, 255, 65, 0.4);
+        padding: 3px 10px;
+        cursor: pointer;
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+
+      .nav {
+        padding: 12px 8px;
+        flex: 1;
+      }
+
+      .nav-label {
+        color: rgba(0, 255, 65, 0.25);
+        font-size: 9px;
+        letter-spacing: 3px;
+        padding: 0 8px 10px;
+        text-transform: uppercase;
+      }
+
+      .nav-item {
+        width: 100%;
+        text-align: left;
+        border: none;
+        border-left: 2px solid transparent;
+        border-radius: 0;
+        padding: 9px 10px;
+        cursor: pointer;
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        color: rgba(0, 255, 65, 0.4);
+        font-size: 11px;
+        transition: all 0.15s;
+      }
+
+      .nav-item:hover {
+        color: rgba(0, 255, 65, 0.7);
+      }
+
+      .nav-item.active {
+        border-left-color: var(--green);
+        background: rgba(0, 255, 65, 0.07);
+        color: var(--green);
+        font-weight: 700;
+      }
+
+      .dot {
+        margin-left: auto;
+        color: var(--green);
+        font-size: 8px;
+      }
+
+      .progress {
+        padding: 14px 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .progress-text {
+        color: rgba(0, 255, 65, 0.25);
+        font-size: 9px;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+      }
+
+      .progress-bar {
+        background: rgba(0, 255, 65, 0.08);
+        height: 2px;
+      }
+
+      .progress-bar > div {
+        height: 100%;
+        background: var(--green);
+        box-shadow: 0 0 8px var(--green);
+        transition: width 0.3s;
+      }
+
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 36px 44px;
+        max-width: 920px;
+        width: 100%;
+      }
+
+      .chapter-header {
+        margin-bottom: 36px;
+      }
+
+      .chapter-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .chapter-icon {
+        width: 48px;
+        height: 48px;
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        background: rgba(0, 255, 65, 0.05);
+      }
+
+      .kicker {
+        color: rgba(0, 255, 65, 0.4);
+        font-size: 10px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+      }
+
+      .chapter-title {
+        color: var(--green);
+        font-size: 22px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: 1px;
+        text-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+      }
+
+      .sep {
+        height: 1px;
+        background: linear-gradient(90deg, var(--green), transparent);
+        opacity: 0.3;
+      }
+
+      /* Blocks */
+      .block-intro {
+        border: 1px solid rgba(0, 255, 65, 0.2);
+        background: rgba(0, 255, 65, 0.04);
+        border-left: 3px solid var(--green);
+        padding: 16px 20px;
+        margin-bottom: 22px;
+      }
+
+      .block-intro p {
+        color: rgba(0, 255, 65, 0.8);
+        font-size: 13px;
+        line-height: 1.9;
+        margin: 0;
+      }
+
+      .block-note {
+        border: 1px solid rgba(0, 255, 65, 0.1);
+        border-left: 3px solid rgba(0, 255, 65, 0.4);
+        background: rgba(0, 255, 65, 0.02);
+        padding: 12px 18px;
+        margin-bottom: 22px;
+      }
+
+      .note-kicker {
+        color: rgba(0, 255, 65, 0.35);
+        font-size: 9px;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .block-note p {
+        color: rgba(0, 255, 65, 0.65);
+        font-size: 12.5px;
+        line-height: 1.8;
+        margin: 0;
+      }
+
+      .features {
+        margin-bottom: 24px;
+      }
+
+      .features-title {
+        color: rgba(0, 255, 65, 0.5);
+        font-size: 10px;
+        letter-spacing: 2px;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .feature {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        background: rgba(0, 255, 65, 0.03);
+        border: 1px solid rgba(0, 255, 65, 0.08);
+        padding: 8px 12px;
+      }
+
+      .chev {
+        color: var(--green);
+        font-size: 10px;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+
+      .feature span:last-child {
+        color: rgba(0, 255, 65, 0.65);
+        font-size: 12px;
+      }
+
+      .info {
+        margin-bottom: 22px;
+      }
+
+      .info-inner {
+        border: 1px solid rgba(255, 200, 0, 0.2);
+        border-left: 3px solid rgba(255, 200, 0, 0.5);
+        background: rgba(255, 200, 0, 0.03);
+        padding: 14px 18px;
+      }
+
+      .info-title {
+        color: rgba(255, 200, 0, 0.6);
+        font-size: 10px;
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+
+      .info-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .info-item span:last-child {
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+      }
+
+      .step {
+        margin-bottom: 22px;
+        border: 1px solid rgba(0, 255, 65, 0.1);
+        background: #0b110b;
+      }
+
+      .step-head {
+        padding: 10px 16px;
+        border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+        background: rgba(0, 255, 65, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .step-head span {
+        color: rgba(0, 255, 65, 0.9);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      .step-body {
+        padding: 14px 16px;
+      }
+
+      .step-text {
+        color: rgba(0, 255, 65, 0.55);
+        font-size: 12.5px;
+        line-height: 1.8;
+        margin: 0 0 12px;
+      }
+
+      .cmd {
+        background: #050905;
+        border: 1px solid rgba(0, 255, 65, 0.12);
+        padding: 8px 14px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--green);
+        overflow-x: auto;
+        box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.03);
+        white-space: nowrap;
+      }
+
+      .cmd.comment {
+        color: rgba(0, 255, 65, 0.35);
+        box-shadow: none;
+      }
+
+      .cmd .prompt {
+        color: rgba(0, 255, 65, 0.3);
+        margin-right: 8px;
+      }
+
+      .step-note {
+        margin-top: 12px;
+        border-left: 2px solid rgba(0, 255, 65, 0.25);
+        padding-left: 14px;
+        padding-top: 4px;
+      }
+
+      .step-note-kicker {
+        color: rgba(0, 255, 65, 0.3);
+        font-size: 9px;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+
+      .step-note pre {
+        color: rgba(0, 255, 65, 0.5);
+        font-size: 11.5px;
+        line-height: 1.8;
+        margin: 0;
+        white-space: pre-wrap;
+        font-family: inherit;
+      }
+
+      .nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 48px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .navbtn {
+        padding: 11px 24px;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 2px;
+        cursor: pointer;
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        background: transparent;
+        color: rgba(0, 255, 65, 0.5);
+        transition: all 0.2s;
+      }
+
+      .navbtn.primary {
+        border-color: var(--green);
+        background: rgba(0, 255, 65, 0.1);
+        color: var(--green);
+      }
+
+      .navbtn:disabled {
+        cursor: not-allowed;
+        border-color: rgba(0, 255, 65, 0.1);
+        color: rgba(0, 255, 65, 0.15);
+        opacity: 0.7;
+      }
+
+      @media (max-width: 900px) {
+        .content {
+          padding: 28px 20px;
+        }
+        .sidebar {
+          width: 240px;
+        }
+      }
+
+      @media (max-width: 820px) {
+        .tutorial {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+          height: auto;
+          position: relative;
+        }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="app"></div>
+
+    <script>
+      const chapters = [
+        {
+          id: 0,
+          title: "Introduction",
+          icon: "🔐",
+          content: [
+            {
+              type: "intro",
+              text: "SSH (Secure Shell) est un protocole de communication sécurisé. Il exige un échange de clés de chiffrement pour toute connexion — tous les segments TCP sont authentifiés et chiffrés, protégeant contre les attaques man-in-the-middle (MITM).",
+            },
+            {
+              type: "info",
+              title: "Objectifs de la cryptographie",
+              items: [
+                "Confidentialité — les données sont protégées des interceptions",
+                "Authentification — identification des partenaires, contrôle d'accès, non-répudiation",
+                "Intégrité des données — données non altérées lors du transfert",
+              ],
+            },
+            {
+              type: "features",
+              title: "Modèle client / serveur",
+              items: [
+                "sshd (serveur) écoute sur le port 22 par défaut",
+                "Authentification par paire de clés asymétriques ou mot de passe",
+                "Clés supportées : RSA, DSA, ECDSA, Ed25519",
+                "Formats reconnus : certificats X509, fichiers PKCS#12",
+                "Remplace : rlogin, telnet, rcp, rsh (protocoles non chiffrés)",
+                "OpenSSH est la version libre et open-source de SSH",
+              ],
+            },
+            {
+              type: "note",
+              text: "Le serveur lit ~/.ssh/authorized_keys pour trouver la clé publique du client. Il envoie un challenge chiffré que seule la clé privée du client peut déchiffrer — sans jamais la dévoiler.",
+            },
+          ],
+        },
+        {
+          id: 1,
+          title: "Infrastructure",
+          icon: "🖥️",
+          content: [
+            { type: "step", title: "1. Mise à jour des machines", commands: ["apt update", "apt upgrade"] },
+            {
+              type: "step",
+              title: "2. Renommer les machines",
+              commands: ["hostnamectl set-hostname sshclient", "hostnamectl set-hostname sshserver", "vim /etc/hostname"],
+              note: "Vérifier avec : hostnamectl\nRésultat attendu → Static hostname: sshserver",
+            },
+            {
+              type: "step",
+              title: "3. Installation des paquets OpenSSH",
+              commands: [
+                "# Sur sshserver :",
+                "apt install openssh-server -y",
+                "# Sur sshclient :",
+                "apt install openssh-client -y",
+              ],
+              note: "Vérification : dpkg -l openssh*\nVérifier version : ssh -V",
+            },
+            {
+              type: "step",
+              title: "4. Vérifier le service SSH",
+              commands: ["/etc/init.d/ssh status", "systemctl status ssh", "service ssh status"],
+              note: "Le service doit afficher : active (running)",
+            },
+            {
+              type: "step",
+              title: "5. Créer les utilisateurs",
+              commands: ["# Sur sshserver :", "adduser userserver", "# Sur sshclient :", "adduser userclient"],
+            },
+          ],
+        },
+        {
+          id: 2,
+          title: "Fichiers de config",
+          icon: "📄",
+          content: [
+            {
+              type: "step",
+              title: "Fichiers sur le serveur SSH (/etc/ssh)",
+              commands: ["ls -l /etc/ssh"],
+              note: `Fichiers présents :
+• moduli — données pour l'échange Diffie-Hellman
+• ssh_config — configuration du client SSH
+• sshd_config — configuration du serveur SSH
+• ssh_host_ecdsa_key / .pub — clé hôte ECDSA
+• ssh_host_ed25519_key / .pub — clé hôte Ed25519
+• ssh_host_rsa_key / .pub — clé hôte RSA`,
+            },
+            {
+              type: "info",
+              title: "Paramètres clés de sshd_config",
+              items: [
+                "#LoginGraceTime 2m — délai max de connexion",
+                "#PermitRootLogin prohibit-password — root interdit par mot de passe",
+                "#StrictModes yes — vérification des permissions fichiers",
+                "#MaxAuthTries 6 — tentatives max d'authentification",
+                "#MaxSessions 10 — sessions simultanées max",
+                "#PubkeyAuthentication yes — authentification par clé publique activée",
+              ],
+            },
+            {
+              type: "note",
+              text: "Sur le client SSH (/etc/ssh) il n'existe que ssh_config et ssh_config.d — pas de clés hôte côté client.",
+            },
+            {
+              type: "info",
+              title: "Types de clés identifiées",
+              items: [
+                "RSA — basé sur la factorisation des nombres premiers",
+                "ECDSA et Ed25519 — basés sur les courbes elliptiques (plus récents et recommandés)",
+              ],
+            },
+          ],
+        },
+        {
+          id: 3,
+          title: "Connexions SSH",
+          icon: "🔗",
+          content: [
+            {
+              type: "step",
+              title: "a. Connexion au serveur SSH (Linux)",
+              commands: ["ssh -l userserver 192.168.44.152", "# ou", "ssh userserver@192.168.44.152"],
+              note: `Le serveur envoie son empreinte — vérifier avant d'accepter :
+ssh-keygen -l -E sha256 -f ssh_host_ecdsa_key.pub
+ssh-keygen -lv -f sha256 -f ssh_host_ecdsa_key.pub
+
+Clé stockée dans : /root/.ssh/known_hosts
+Supprimer une clé : ssh-keygen -f "/root/.ssh/known_hosts" -R "192.168.44.135"
+
+⚠ La connexion root est désactivée par défaut (PermitRootLogin prohibit-password)`,
+            },
+            {
+              type: "step",
+              title: "b. Connexion client → client (refusée)",
+              commands: ["ssh userclient@192.168.44.158"],
+              note: "Résultat : Connection refused\nCause : openssh-server n'est pas installé sur sshclient",
+            },
+            {
+              type: "step",
+              title: "c. Connexion vers Windows 2019/2022/10",
+              text: "Installer OpenSSH via Paramètres → Applications → Fonctionnalités facultatives, ou en PowerShell :",
+              commands: [
+                "Get-WindowsCapability -Online | ? Name -like 'OpenSSH*'",
+                "Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0",
+                "Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0",
+                "Start-Service sshd",
+                "Set-Service -Name sshd -StartupType 'Automatic'",
+                "New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22",
+              ],
+              note: "Depuis sshclient : ssh userw19@192.168.44.145\nLancer PowerShell depuis la session : C:\\Windows\\System32\\WindowsPowerShell\\v1.0> powershell",
+            },
+            {
+              type: "step",
+              title: "8. Transfert de fichiers",
+              commands: ["scp fichier.txt userserver@192.168.44.152:/home/userserver/", "# Ou utiliser WinSCP pour Windows"],
+              note: "scp = Secure Copy, utilise le protocole SSH pour transférer des fichiers de manière chiffrée.",
+            },
+          ],
+        },
+        {
+          id: 4,
+          title: "Clés asymétriques",
+          icon: "🗝️",
+          content: [
+            {
+              type: "step",
+              title: "1. Créer une paire de clés sur sshclient",
+              commands: ["ssh-keygen -t rsa -b 1024 -f /home/userclient/uc_rsa"],
+              note: `Syntaxe complète :
+ssh-keygen -t <algorithme> -b <taille> -f <chemin>
+
+Fichiers créés :
+• uc_rsa — clé privée (protégée par passphrase)
+• uc_rsa.pub — clé publique
+
+Changer le mot de passe d'une clé privée :
+ssh-keygen -p -f /home/user/rsa_user
+
+Afficher l'empreinte d'une clé publique :
+ssh-keygen -l -E sha256 -f /home/userclient/uc_rsa.pub`,
+            },
+            {
+              type: "step",
+              title: "2. Envoyer la clé publique au serveur",
+              commands: ["ssh-copy-id -i uc_rsa.pub userserver@192.168.44.152"],
+              note: `La clé est ajoutée dans :
+~/.ssh/authorized_keys sur userserver@sshserver
+
+Vérifier côté serveur :
+cat ~/.ssh/authorized_keys`,
+            },
+            {
+              type: "step",
+              title: "3. Connexion avec la clé",
+              commands: ["ssh -i uc_rsa userserver@192.168.44.152"],
+              note: `La passphrase est demandée pour déverrouiller la clé privée.
+
+Si la clé s'appelle id_rsa (nom par défaut) :
+ssh userserver@192.168.44.152
+(pas besoin de -i)`,
+            },
+            {
+              type: "info",
+              title: "Authentification par clé publique — résumé",
+              items: [
+                "Clé publique copiée côté serveur dans $HOME/.ssh/authorized_keys",
+                "Clé privée disponible dans $HOME/.ssh/id_rsa côté client",
+                "La directive PubkeyAuthentication doit être yes dans sshd_config",
+                "Copie via ssh-copy-id ou concaténation manuelle dans authorized_keys",
+              ],
+            },
+          ],
+        },
+        {
+          id: 5,
+          title: "Agent SSH",
+          icon: "🤖",
+          content: [
+            {
+              type: "intro",
+              text: "ssh-agent est un outil côté client qui garde les clés privées en mémoire déverrouillées. Il évite de saisir la passphrase à chaque connexion SSH.",
+            },
+            {
+              type: "step",
+              title: "a. Démarrer une nouvelle instance bash",
+              commands: ["exec ssh-agent bash"],
+              note: "exec ssh-agent bash démarre un nouveau shell avec l'agent intégré. L'agent s'arrête automatiquement en fin de session.",
+            },
+            {
+              type: "step",
+              title: "b. Charger la clé en mémoire",
+              commands: ["ssh-add uc_rsa", "# Vérifier les clés en mémoire :", "ssh-add -l"],
+              note: "Entrer la passphrase une seule fois. La clé reste en mémoire pour toute la session.",
+            },
+            {
+              type: "step",
+              title: "c. Connexion sans passphrase",
+              commands: ["ssh -i uc_rsa userserver@192.168.44.152"],
+              note: "La passphrase n'est plus demandée — l'agent l'a déjà en mémoire.",
+            },
+            {
+              type: "step",
+              title: "d. Autres options utiles",
+              commands: ["ssh-add -d uc_rsa", "ssh-add -t 60 uc_rsa", "ssh-add -l"],
+              note: `-d : supprimer une clé de la mémoire
+-t 60 : mémoriser la clé pendant 60 secondes seulement
+-l : lister les clés en mémoire
+
+Après expiration : "The agent has no identities."`,
+            },
+          ],
+        },
+        {
+          id: 6,
+          title: "Fichier Config",
+          icon: "⚙️",
+          content: [
+            {
+              type: "intro",
+              text: "Le fichier ~/.ssh/config permet de simplifier les connexions SSH en définissant des alias pour les serveurs. Au lieu de taper ssh user@ip, on tape juste ssh sshserver.",
+            },
+            {
+              type: "step",
+              title: "a. Créer le fichier config",
+              commands: ["cd .ssh", "touch config", "ls"],
+              note: "Le fichier config et known_hosts doivent être présents dans ~/.ssh/",
+            },
+            {
+              type: "step",
+              title: "b. Modifier le fichier config",
+              commands: ["vim ~/.ssh/config"],
+              note: `Contenu du fichier config :
+host sshserver
+    user userserver
+    port 22
+    identityfile /home/userserver/uc_rsa`,
+            },
+            {
+              type: "step",
+              title: "c. Modifier le fichier hosts",
+              commands: ["vim /etc/hosts"],
+              note: `Ajouter la ligne :
+192.168.44.152  sshserver
+
+Exemple complet /etc/hosts :
+127.0.0.1       localhost
+127.0.1.1       sshsclient
+192.168.44.152  sshserver`,
+            },
+            { type: "step", title: "Connexion simplifiée", commands: ["ssh sshserver"], note: "Plus besoin de l'adresse IP ni du nom d'utilisateur — tout est dans le fichier config !" },
+          ],
+        },
+        {
+          id: 7,
+          title: "Double Auth Google",
+          icon: "📱",
+          content: [
+            { type: "step", title: "1. Installer libpam-google-authenticator", commands: ["apt install libpam-google-authenticator"] },
+            { type: "step", title: "2. Modifier /etc/pam.d/sshd", commands: ["vim /etc/pam.d/sshd"], note: "Ajouter à la fin du fichier :\n#Authentification Google\nauth required pam_google_authenticator.so" },
+            { type: "step", title: "3. Modifier sshd_config", commands: ["vim /etc/ssh/sshd_config"], note: "Modifier ou activer la ligne :\nChallengeResponseAuthentication yes" },
+            {
+              type: "step",
+              title: "4. Redémarrer SSH et configurer",
+              commands: ["service sshd restart", "service sshd status", "google-authenticator"],
+              note: `Répondre 'y' à la question :
+"Do you want authentication tokens to be time-based (y/n) ?"
+
+⚠ Lancer google-authenticator pour CHAQUE utilisateur concerné.
+
+Synchronisation NTP (obligatoire pour les tokens temporels) :
+apt install ntp ntpdate
+ntpdate pool.ntp.org
+service ntp status`,
+            },
+            {
+              type: "info",
+              title: "Configuration NTP — serveurs France",
+              items: [
+                "0.fr.pool.ntp.org",
+                "1.fr.pool.ntp.org",
+                "2.fr.pool.ntp.org",
+                "3.fr.pool.ntp.org",
+                "Modifier /etc/ntp.conf pour remplacer les serveurs NTP par ceux-ci",
+              ],
+            },
+            { type: "note", text: "Sur le smartphone : télécharger l'application Google Authenticator depuis le Play Store / App Store. Scanner le QR code affiché lors de l'exécution de google-authenticator." },
+          ],
+        },
+        {
+          id: 8,
+          title: "Bannière SSH",
+          icon: "🏷️",
+          content: [
+            { type: "intro", text: "Une bannière SSH s'affiche avant l'authentification, à chaque connexion au serveur. Elle peut contenir un message d'avertissement légal ou de bienvenue." },
+            {
+              type: "step",
+              title: "a. Créer le fichier de bannière",
+              commands: ["vim /root/banner"],
+              note: `Exemple de contenu ASCII art :
+#########################################################
+   /-----\\    /---\\   /----/   /----/
+  |  SSH  |  | 🔐 | |      | |     |
+   \\-----/    \\---/   \\----/   \\----/
+              BRES VOUS
+#########################################################`,
+            },
+            {
+              type: "step",
+              title: "b. Référencer la bannière dans sshd_config",
+              commands: ["vim /etc/ssh/sshd_config"],
+              note: `Décommenter ou ajouter la ligne :
+# no default banner path
+Banner /root/banner
+
+Puis redémarrer SSH :
+service sshd restart`,
+            },
+          ],
+        },
+        {
+          id: 9,
+          title: "SSH Mobile",
+          icon: "📲",
+          content: [
+            { type: "intro", text: "Deux méthodes pour se connecter à un serveur SSH depuis un smartphone." },
+            {
+              type: "step",
+              title: "a. Connexion via redirection de port (4G)",
+              text: "Accès depuis l'extérieur via l'adresse IP publique.",
+              commands: [],
+              note: `Prérequis :
+1. Mettre la VM en mode Bridge (pas NAT)
+2. Ouvrir le port 22 dans la box internet (redirection de port)
+3. Trouver l'IP publique : http://www.whatismyip.com
+4. Installer JuiceSSH sur Android (Google Play)
+5. Se mettre en 4G (pas WiFi du même réseau)
+6. Connexion rapide : ssh root@<adresse_publique>`,
+            },
+            {
+              type: "step",
+              title: "b. Connexion via partage de connexion 4G",
+              text: "Le smartphone crée un hotspot WiFi — tout est sur le même réseau.",
+              commands: [],
+              note: `Étapes :
+1. Activer le point d'accès WiFi sur le smartphone
+2. Connecter la machine physique au WiFi du smartphone
+3. Mettre la VM SSH en Bridge
+4. Installer Termux sur Android (terminal Linux)
+5. Relever les IPs :
+   - Smartphone  : 192.168.43.234/24
+   - Machine phys: 192.168.43.197/24
+   - VM serveur  : 192.168.43.122/24
+6. Tester ping : ping 192.168.43.122
+7. Connexion SSH depuis Termux ou JuiceSSH`,
+            },
+          ],
+        },
+        {
+          id: 10,
+          title: "Ports réseau",
+          icon: "🌐",
+          content: [
+            { type: "intro", text: "Un numéro de port est codé sur 16 bits → 65 536 ports distincts par machine (2¹⁶). Ils sont classés en 3 catégories." },
+            {
+              type: "features",
+              title: "Catégories de ports",
+              items: [
+                "0 – 1023 : Ports 'bien-connus' (well-known) — services réseaux courants",
+                "1024 – 49151 : Ports enregistrés (registered) — assignés par l'IANA",
+                "49152 – 65535 : Ports dynamiques — utilisables librement",
+                "Fichier Linux : /etc/services",
+                "Fichier Windows : C:\\Windows\\System32\\drivers\\etc\\services",
+              ],
+            },
+            { type: "step", title: "Afficher les ports avec netstat", commands: ["netstat -paunt"], note: "Options netstat :\n-a : tous les ports\n-t : ports TCP uniquement\n-u : ports UDP uniquement\n-l : ports en écoute\n-n : afficher les IP (sans résolution de noms)\n-p : afficher le nom du programme et le PID" },
+            { type: "info", title: "Ports SSH importants", items: ["22 — SSH (port par défaut)", "21 — FTP", "23 — Telnet (non sécurisé — remplacé par SSH)", "80 — HTTP", "443 — HTTPS", "25 — SMTP (messagerie)"] },
+          ],
+        },
+      ];
+
+      const state = { page: "cover", active: 0 };
+      const app = document.getElementById("app");
+
+      function el(tag, attrs = {}, children = []) {
+        const node = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v === null || v === undefined) continue;
+          if (k === "class") node.className = v;
+          else if (k === "text") node.textContent = v;
+          else if (k === "html") node.innerHTML = v;
+          else if (k === "style") node.setAttribute("style", v);
+          else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+          else node.setAttribute(k, v);
+        }
+        for (const child of children) node.appendChild(child);
+        return node;
+      }
+
+      function render() {
+        app.innerHTML = "";
+        if (state.page === "cover") app.appendChild(renderCover());
+        else app.appendChild(renderTutorial());
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+
+      function renderCover() {
+        const inner = el("div", { class: "cover-inner" }, [
+          el("div", { class: "badge" }, [el("span", { text: "■" }), el("span", { text: "OpenSSH — Documentation Technique" }), el("span", { text: "■" })]),
+          el("div", {}, [el("div", { class: "ssh-title", text: "SSH" }), el("div", { class: "ssh-sub", text: "SECURE SHELL" })]),
+          el("div", { class: "desc", text: "Guide complet d'installation, configuration, clés asymétriques, agent SSH, double authentification Google et connexion mobile" }),
+          renderPills(),
+          el("button", {
+            class: "start-btn",
+            html: "&gt; DÉMARRER LE TUTORIEL_",
+            onclick: () => {
+              state.page = "tutorial";
+              render();
+            },
+          }),
+          el("div", { class: "tiny", text: `${chapters.length} CHAPITRES · DEBIAN 11 · OPENSSH` }),
+        ]);
+
+        return el("div", { class: "cover" }, [el("div", { class: "scanlines" }), el("div", { class: "grid" }), el("div", { class: "glow" }), inner]);
+      }
+
+      function renderPills() {
+        const row = el("div", { class: "pill-row" }, []);
+        for (const ch of chapters) row.appendChild(el("div", { class: "pill", text: `${ch.icon} ${ch.title}` }));
+        return row;
+      }
+
+      function renderTutorial() {
+        return el("div", { class: "tutorial" }, [renderSidebar(), renderContent()]);
+      }
+
+      function renderSidebar() {
+        const header = el("div", { class: "sidebar-header" }, [
+          el("div", { class: "logo", text: "SSH" }),
+          el("button", {
+            class: "home-btn",
+            text: "← HOME",
+            onclick: () => {
+              state.page = "cover";
+              render();
+            },
+          }),
+        ]);
+
+        const nav = el("div", { class: "nav" }, [el("div", { class: "nav-label", text: "// CHAPITRES" })]);
+        for (const ch of chapters) {
+          const btn = el(
+            "button",
+            {
+              class: `nav-item ${state.active === ch.id ? "active" : ""}`,
+              onclick: () => {
+                state.active = ch.id;
+                render();
+              },
+            },
+            [el("span", { text: ch.icon }), el("span", { style: "font-size:10px", text: ch.title })]
+          );
+          if (state.active === ch.id) btn.appendChild(el("span", { class: "dot", text: "●" }));
+          nav.appendChild(btn);
+        }
+
+        const progress = el("div", { class: "progress" }, [
+          el("div", { class: "progress-text", text: `PROGRESS ${state.active + 1}/${chapters.length}` }),
+          el("div", { class: "progress-bar" }, [el("div", { style: `width:${((state.active + 1) / chapters.length) * 100}%` })]),
+        ]);
+
+        return el("div", { class: "sidebar" }, [header, el("nav", {}, [nav]), progress]);
+      }
+
+      function renderContent() {
+        const chapter = chapters[state.active];
+        const header = el("div", { class: "chapter-header" }, [
+          el("div", { class: "chapter-top" }, [
+            el("div", { class: "chapter-icon", text: chapter.icon }),
+            el("div", {}, [
+              el("div", { class: "kicker", text: `// CHAPITRE ${state.active + 1}` }),
+              el("h1", { class: "chapter-title", text: chapter.title }),
+            ]),
+          ]),
+          el("div", { class: "sep" }),
+        ]);
+
+        const blocks = [];
+        for (const block of chapter.content) {
+          if (block.type === "intro") blocks.push(renderIntro(block));
+          else if (block.type === "note") blocks.push(renderNote(block));
+          else if (block.type === "features") blocks.push(renderFeatures(block));
+          else if (block.type === "info") blocks.push(renderInfo(block));
+          else if (block.type === "step") blocks.push(renderStep(block));
+        }
+
+        const navBtns = el("div", { class: "nav-buttons" }, [
+          el("button", {
+            class: "navbtn",
+            text: "← PRÉCÉDENT",
+            onclick: () => {
+              if (state.active === 0) return;
+              state.active = Math.max(0, state.active - 1);
+              render();
+            },
+          }),
+          el("button", {
+            class: "navbtn primary",
+            text: "SUIVANT →",
+            onclick: () => {
+              if (state.active === chapters.length - 1) return;
+              state.active = Math.min(chapters.length - 1, state.active + 1);
+              render();
+            },
+          }),
+        ]);
+        navBtns.children[0].disabled = state.active === 0;
+        navBtns.children[1].disabled = state.active === chapters.length - 1;
+
+        return el("div", { class: "content" }, [header, ...blocks, navBtns]);
+      }
+
+      function renderIntro(block) {
+        return el("div", { class: "block-intro" }, [el("p", { text: block.text })]);
+      }
+
+      function renderNote(block) {
+        return el("div", { class: "block-note" }, [el("div", { class: "note-kicker", text: "// NOTE" }), el("p", { text: block.text })]);
+      }
+
+      function renderFeatures(block) {
+        const grid = el("div", { class: "features-grid" }, []);
+        for (const item of block.items) {
+          grid.appendChild(el("div", { class: "feature" }, [el("span", { class: "chev", text: "›" }), el("span", { text: item })]));
+        }
+        return el("div", { class: "features" }, [el("div", { class: "features-title", text: `// ${block.title}` }), grid]);
+      }
+
+      function renderInfo(block) {
+        const inner = el("div", { class: "info-inner" }, [el("div", { class: "info-title", text: `⚡ ${block.title}` })]);
+        for (const item of block.items) {
+          inner.appendChild(el("div", { class: "info-item" }, [el("span", { style: "color:rgba(255,200,0,0.5);font-size:10px", text: "•" }), el("span", { text: item })]));
+        }
+        return el("div", { class: "info" }, [inner]);
+      }
+
+      function renderStep(block) {
+        const head = el("div", { class: "step-head" }, [el("span", { style: "color:var(--green);font-size:10px", text: "●" }), el("span", { text: block.title })]);
+        const body = el("div", { class: "step-body" }, []);
+        if (block.text) body.appendChild(el("p", { class: "step-text", text: block.text }));
+        const cmds = (block.commands || []).filter((c) => c !== undefined && c !== null);
+        for (const cmd of cmds) {
+          const isComment = typeof cmd === "string" && cmd.trim().startsWith("#");
+          body.appendChild(
+            el("div", { class: `cmd ${isComment ? "comment" : ""}` }, [
+              ...(isComment ? [] : [el("span", { class: "prompt", text: "$" })]),
+              el("span", { text: cmd }),
+            ])
+          );
+        }
+        if (block.note) {
+          body.appendChild(
+            el("div", { class: "step-note" }, [el("div", { class: "step-note-kicker", text: "// INFO" }), el("pre", { text: block.note })])
+          );
+        }
+        return el("div", { class: "step" }, [head, body]);
+      }
+
+      render();
+    </script>
+  </body>
+</html>
+

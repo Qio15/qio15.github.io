@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Veille technologique - Portfolio BTS SIO" />
+    <title>Portfolio BTS SIO | Veille technologique</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">Portfolio BTS SIO</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNav"
+          aria-controls="mainNav"
+          aria-expanded="false"
+          aria-label="Ouvrir le menu"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto gap-1">
+            <li class="nav-item"><a class="nav-link" data-nav href="index.html">Accueil</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="presentation.html">Présentation</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="epreuve-e5.html">E5</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="epreuve-e6.html">E6</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="epreuve-e7.html">E7</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="competences.html">Compétences</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" data-nav href="veille-technologique.html">Veille technologique</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-4">
+      <header class="bg-surface p-4 p-md-5 reveal">
+        <h1 class="section-title mb-2">Veille technologique</h1>
+        <p class="section-subtitle mb-0">
+          Sujet de veille : sécurité des réseaux Wi-Fi en entreprise, avec un focus sur l'authentification, la
+          segmentation et la protection contre les attaques courantes.
+        </p>
+      </header>
+
+      <!-- ======================================================
+           Thèmes de veille
+           ====================================================== -->
+      <section class="mt-4 reveal">
+        <div class="card">
+          <div class="card-body p-4 p-md-5">
+            <h2 class="h4 section-title mb-3">Sujet</h2>
+            <ul class="text-muted mb-0">
+              <li>
+                La veille porte sur la sécurisation du Wi-Fi en entreprise, notamment sur les mécanismes de chiffrement
+                (WPA2/WPA3), l'authentification des utilisateurs et l'isolation des flux réseau.
+              </li>
+              <li>
+                Ce sujet est directement lié aux besoins d'une infrastructure professionnelle : protéger les données,
+                contrôler les accès et limiter les impacts en cas d'incident.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           Sources et outils
+           ====================================================== -->
+      <section class="mt-4">
+        <div class="row g-3">
+          <div class="col-12 col-lg-6 reveal">
+            <div class="card card-hover h-100">
+              <div class="card-body p-4 p-md-5">
+                <h2 class="h4 section-title mb-3">Objectif</h2>
+                <p class="text-muted mb-0">
+                  L'objectif de cette veille est d'identifier les bonnes pratiques pour déployer un Wi-Fi d'entreprise
+                  fiable et sécurisé. Je cherche à comprendre quelles technologies sont les plus adaptées selon le niveau
+                  de sécurité attendu, et comment réduire les risques d'attaques comme le Man-in-the-Middle, le sniffing
+                  ou le faux point d'accès.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-lg-6 reveal">
+            <div class="card card-hover h-100">
+              <div class="card-body p-4 p-md-5">
+                <h2 class="h4 section-title mb-3">Outils</h2>
+                <ul class="text-muted mb-0">
+                  <li>Alertes Google avec des mots-clés : WPA3, 802.1X, RADIUS, Wi-Fi security.</li>
+                  <li>Sites constructeurs et éditeurs (Cisco, Aruba, Fortinet, Microsoft).</li>
+                  <li>Documentation technique et articles spécialisés en cybersécurité réseau.</li>
+                  <li>Prise de notes structurée pour comparer les solutions et les recommandations.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ======================================================
+           Exemple de veille
+           ====================================================== -->
+      <section class="mt-4 reveal">
+        <div class="card">
+          <div class="card-body p-4 p-md-5">
+            <h2 class="h4 section-title mb-3">Informations collectées</h2>
+            <p class="text-muted mb-3">
+              Les informations consultées montrent que WPA2 reste encore très utilisé en entreprise, mais que WPA3 apporte
+              une meilleure résistance aux attaques sur les mots de passe et une sécurité renforcée des échanges.
+            </p>
+            <ul class="text-muted mb-4">
+              <li>
+                L'authentification 802.1X, associée à un serveur RADIUS et à Active Directory, permet une gestion
+                centralisée des identités et un contrôle précis des accès Wi-Fi.
+              </li>
+              <li>
+                La segmentation par VLAN améliore la sécurité en séparant les usages (administration, utilisateurs,
+                invités, services sensibles), ce qui limite les déplacements latéraux en cas de compromission.
+              </li>
+              <li>
+                Les principaux risques observés sont le Man-in-the-Middle, le sniffing sur un réseau mal protégé et les
+                faux points d'accès qui imitent un SSID légitime.
+              </li>
+            </ul>
+
+            <h2 class="h4 section-title mb-3">Analyse</h2>
+            <p class="text-muted mb-3">
+              L'analyse des sources confirme qu'une bonne sécurité Wi-Fi ne repose pas sur un seul paramètre. Le couple
+              WPA2/WPA3 doit être complété par 802.1X avec RADIUS et Active Directory pour authentifier les utilisateurs
+              de manière fiable. La segmentation VLAN est également essentielle pour réduire la surface d'attaque.
+            </p>
+            <p class="text-muted mb-0">
+              En pratique, même avec un chiffrement fort, un réseau mal segmenté ou mal supervisé reste vulnérable. Une
+              stratégie efficace combine donc chiffrement, authentification forte, filtrage réseau et surveillance
+              régulière des bornes Wi-Fi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-4 reveal">
+        <div class="card">
+          <div class="card-body p-4 p-md-5">
+            <h2 class="h4 section-title mb-3">Conclusion</h2>
+            <p class="text-muted mb-0">
+              Cette veille m'a permis de mieux comprendre les choix techniques à appliquer en environnement
+              professionnel. Pour un SI d'entreprise, la combinaison la plus cohérente est : Wi-Fi protégé en WPA2/WPA3,
+              authentification 802.1X via RADIUS et Active Directory, et segmentation VLAN selon les profils
+              d'utilisateurs. Cette approche répond aux exigences de sécurité tout en restant exploitable dans un contexte
+              BTS SIO.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mt-4 py-4">
+      <div class="container d-flex flex-column flex-md-row gap-2 align-items-md-center justify-content-between">
+        <div class="text-muted">© <span id="year"></span> Mathias Paris — Portfolio BTS SIO</div>
+        <div class="text-muted">
+          <a class="link-light" href="index.html">Accueil</a>
+        </div>
+      </div>
+    </footer>
+
+    <button id="backToTop" class="btn btn-primary back-to-top" type="button" aria-label="Retour en haut">
+      ↑
+    </button>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script src="script.js"></script>
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+  </body>
+</html>
+
