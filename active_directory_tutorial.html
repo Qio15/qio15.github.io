@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Active Directory — Tutoriel</title>
+    <meta name="description" content="Active Directory — Guide d'installation & configuration (HERMES / stadiumcompany.com)." />
+    <style>
+      :root {
+        --bg: #0a0e1a;
+        --fg: #e8e4d9;
+        --muted: #b0c4de;
+        --blue: #6488c8;
+        --blue2: #3a5fa0;
+        --border: rgba(100, 140, 200, 0.2);
+        --card: rgba(255, 255, 255, 0.02);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        background: var(--bg);
+        color: var(--fg);
+      }
+
+      button {
+        font-family: inherit;
+      }
+
+      .app {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Top bar */
+      .topbar {
+        background: rgba(10, 14, 26, 0.95);
+        border-bottom: 1px solid rgba(100, 140, 200, 0.2);
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 52px;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .home-btn {
+        background: none;
+        border: none;
+        color: var(--blue);
+        font-size: 13px;
+        font-family: "Courier New", monospace;
+        cursor: pointer;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        padding: 4px 8px;
+      }
+
+      .progress-wrap {
+        flex: 1;
+        height: 2px;
+        background: rgba(100, 140, 200, 0.15);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--blue2), var(--blue));
+        border-radius: 2px;
+        transition: width 0.4s ease;
+      }
+
+      .counter {
+        font-size: 12px;
+        color: #5a7aaa;
+        font-family: "Courier New", monospace;
+      }
+
+      /* Cover */
+      .cover {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: radial-gradient(ellipse at 30% 40%, #0d1a3a 0%, var(--bg) 60%);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cover-grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(100, 140, 200, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(100, 140, 200, 0.04) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+      }
+
+      .cover-glow {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(60, 100, 180, 0.12) 0%, transparent 70%);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+      }
+
+      .cover-inner {
+        position: relative;
+        text-align: center;
+        padding: 40px 24px;
+        z-index: 1;
+      }
+
+      .badge {
+        display: inline-block;
+        background: rgba(100, 140, 200, 0.1);
+        border: 1px solid rgba(100, 140, 200, 0.3);
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-size: 11px;
+        letter-spacing: 4px;
+        color: var(--blue);
+        text-transform: uppercase;
+        font-family: "Courier New", monospace;
+        margin-bottom: 40px;
+      }
+
+      .logo {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 32px;
+        background: linear-gradient(135deg, #1a2a5e, #2a4080);
+        border: 2px solid rgba(100, 140, 200, 0.4);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        box-shadow: 0 0 40px rgba(60, 100, 180, 0.3);
+      }
+
+      .cover-title {
+        font-size: clamp(36px, 6vw, 72px);
+        font-weight: 700;
+        letter-spacing: -1px;
+        margin: 0 0 8px;
+        background: linear-gradient(135deg, #ffffff 0%, #a0c0ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.1;
+      }
+
+      .cover-subtitle {
+        font-size: 18px;
+        color: #7090c0;
+        margin: 0 0 16px;
+        letter-spacing: 1px;
+      }
+
+      .cover-meta {
+        font-size: 13px;
+        color: #4a6a9a;
+        font-family: "Courier New", monospace;
+        letter-spacing: 2px;
+        margin: 0 0 56px;
+      }
+
+      .chapter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 10px;
+        max-width: 760px;
+        margin: 0 auto 48px;
+      }
+
+      .chapter-tile {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(100, 140, 200, 0.15);
+        border-radius: 8px;
+        padding: 14px 12px;
+        cursor: pointer;
+        color: #c0d0e8;
+        text-align: left;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chapter-tile:hover {
+        background: rgba(100, 140, 200, 0.1);
+        border-color: rgba(100, 140, 200, 0.4);
+        transform: translateY(-2px);
+      }
+
+      .start-btn {
+        background: linear-gradient(135deg, #2a4a8a, #3a6ac0);
+        border: none;
+        border-radius: 8px;
+        padding: 14px 40px;
+        color: #ffffff;
+        font-size: 15px;
+        cursor: pointer;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 20px rgba(60, 100, 180, 0.4);
+        transition: all 0.2s;
+      }
+
+      .start-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 28px rgba(60, 100, 180, 0.5);
+      }
+
+      /* Chapter content */
+      .page {
+        flex: 1;
+        max-width: 900px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 40px 24px 80px;
+      }
+
+      .chapter-head {
+        margin-bottom: 40px;
+      }
+
+      .chapter-head-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .chapter-kicker {
+        font-size: 11px;
+        letter-spacing: 3px;
+        color: #4a6a9a;
+        text-transform: uppercase;
+        font-family: "Courier New", monospace;
+        margin-bottom: 4px;
+      }
+
+      .chapter-h2 {
+        font-size: clamp(22px, 3vw, 34px);
+        font-weight: 700;
+        margin: 0;
+        background: linear-gradient(135deg, #ffffff, #a0b8e0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .sep {
+        height: 1px;
+        background: linear-gradient(90deg, rgba(100, 140, 200, 0.4), transparent);
+      }
+
+      .blocks {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .text {
+        font-size: 16px;
+        line-height: 1.8;
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .highlight,
+      .warning {
+        border-radius: 0 8px 8px 0;
+        padding: 16px 20px;
+      }
+
+      .highlight {
+        background: rgba(60, 100, 180, 0.1);
+        border: 1px solid rgba(100, 140, 200, 0.3);
+        border-left: 3px solid var(--blue);
+      }
+
+      .warning {
+        background: rgba(200, 140, 40, 0.08);
+        border: 1px solid rgba(200, 160, 60, 0.3);
+        border-left: 3px solid #c8a040;
+      }
+
+      .label {
+        font-size: 11px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-family: "Courier New", monospace;
+        margin-bottom: 6px;
+      }
+
+      .label.blue {
+        color: var(--blue);
+      }
+
+      .label.gold {
+        color: #c8a040;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid rgba(100, 140, 200, 0.2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .card-title {
+        background: rgba(100, 140, 200, 0.1);
+        padding: 10px 20px;
+        font-size: 12px;
+        letter-spacing: 2px;
+        color: #7090c0;
+        font-family: "Courier New", monospace;
+        text-transform: uppercase;
+      }
+
+      .config-row {
+        display: flex;
+        padding: 10px 20px;
+        border-top: 1px solid rgba(100, 140, 200, 0.08);
+        gap: 16px;
+        align-items: center;
+      }
+
+      .config-key {
+        flex: 1;
+        font-size: 13px;
+        color: #7090a8;
+      }
+
+      .config-val {
+        font-size: 13px;
+        font-family: "Courier New", monospace;
+        color: #c8d8f0;
+      }
+
+      .config-val.hi {
+        color: #80c0ff;
+        background: rgba(80, 140, 220, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+      }
+
+      .steps-title {
+        font-size: 15px;
+        color: #7090c0;
+        font-weight: 600;
+        margin: 0 0 16px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-family: "Courier New", monospace;
+      }
+
+      .step-item {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(100, 140, 200, 0.1);
+        border-radius: 8px;
+      }
+
+      .step-n {
+        min-width: 26px;
+        height: 26px;
+        background: linear-gradient(135deg, #1a2a5e, #2a4080);
+        border: 1px solid rgba(100, 140, 200, 0.3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-family: "Courier New", monospace;
+        color: var(--blue);
+        flex-shrink: 0;
+      }
+
+      .step-txt {
+        font-size: 14px;
+        color: #b8ccdf;
+        line-height: 1.6;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+      }
+
+      .feature {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(100, 140, 200, 0.15);
+        border-radius: 10px;
+        padding: 18px 16px;
+      }
+
+      .feature-icon {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
+
+      .feature-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c0d4f0;
+        margin-bottom: 6px;
+      }
+
+      .feature-desc {
+        font-size: 12px;
+        color: #6a8ab0;
+        line-height: 1.5;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th {
+        padding: 10px 14px;
+        text-align: left;
+        color: var(--blue);
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-family: "Courier New", monospace;
+        font-size: 11px;
+        text-transform: uppercase;
+        border: 1px solid rgba(100, 140, 200, 0.15);
+        background: rgba(100, 140, 200, 0.1);
+      }
+
+      td {
+        padding: 9px 14px;
+        border: 1px solid rgba(100, 140, 200, 0.08);
+        color: #b8ccdf;
+      }
+
+      td.muted {
+        color: #7090b0;
+      }
+
+      td.mono {
+        font-family: "Courier New", monospace;
+      }
+
+      .tree {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(100, 140, 200, 0.15);
+        border-radius: 10px;
+        padding: 20px;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+      }
+
+      .tree-root {
+        color: var(--blue);
+        margin-bottom: 12px;
+      }
+
+      .tree-node {
+        margin-left: 20px;
+        margin-bottom: 4px;
+      }
+
+      .tree-node-label {
+        color: #c0d0e8;
+      }
+
+      .tree-branch {
+        color: #3a5a9a;
+        margin-right: 8px;
+      }
+
+      .tree-leaf {
+        margin-left: 30px;
+        color: #7090a8;
+      }
+
+      .tree-leaf-branch {
+        color: #2a4a8a;
+        margin-right: 8px;
+      }
+
+      .gpo-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .gpo {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(100, 140, 200, 0.2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .gpo-head {
+        background: rgba(60, 100, 180, 0.15);
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .gpo-head span:last-child {
+        font-size: 14px;
+        font-weight: 600;
+        color: #a0c0e8;
+      }
+
+      .gpo-body {
+        padding: 14px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .gpo-step {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+
+      .gpo-step b {
+        color: #3a5a9a;
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .gpo-step span {
+        font-size: 13px;
+        color: #a0b8d4;
+        line-height: 1.6;
+      }
+
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 56px;
+        padding-top: 24px;
+        border-top: 1px solid rgba(100, 140, 200, 0.15);
+      }
+
+      .nav-prev {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(100, 140, 200, 0.2);
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: #7090b0;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+      }
+
+      .nav-prev:hover {
+        background: rgba(100, 140, 200, 0.1);
+        color: #a0c0e0;
+      }
+
+      .nav-next {
+        background: linear-gradient(135deg, #2a4a8a, #3a6ac0);
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        color: #ffffff;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        box-shadow: 0 2px 12px rgba(60, 100, 180, 0.3);
+      }
+
+      .nav-next:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(60, 100, 180, 0.4);
+      }
+
+      @media (max-width: 720px) {
+        .topbar {
+          padding: 0 12px;
+        }
+        .page {
+          padding: 28px 16px 64px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="app"></div>
+
+    <script>
+      const chapters = [
+        { id: "cover", title: "Active Directory", subtitle: "Guide d'installation & Configuration", isCover: true },
+        {
+          id: "intro",
+          title: "Présentation",
+          icon: "🏛️",
+          content: [
+            {
+              type: "text",
+              text: "Active Directory (AD) est un service annuaire LDAP développé par Microsoft pour les environnements Windows Server. Il constitue le cœur de l'infrastructure réseau d'entreprise.",
+            },
+            {
+              type: "highlight",
+              label: "Rôle principal",
+              text: "Fournir des services centralisés d'identification et d'authentification à un réseau d'ordinateurs Windows.",
+            },
+            {
+              type: "features",
+              items: [
+                { icon: "👤", label: "Gestion des utilisateurs", desc: "Comptes centralisés, mots de passe, groupes" },
+                { icon: "💻", label: "Gestion des postes", desc: "Ordinateurs, imprimantes, ressources réseau" },
+                { icon: "📁", label: "Partage de ressources", desc: "Dossiers partagés, GPO, scripts" },
+                { icon: "🔐", label: "Sécurité centralisée", desc: "Politiques, certificats, droits d'accès" },
+              ],
+            },
+          ],
+        },
+        {
+          id: "prerequisites",
+          title: "Prérequis & Configuration réseau",
+          icon: "⚙️",
+          content: [
+            {
+              type: "text",
+              text: "Avant l'installation, configurez la machine selon les paramètres définis pour le domaine stadiumcompany.com.",
+            },
+            {
+              type: "config",
+              title: "Configuration du serveur HERMES",
+              items: [
+                { key: "Nom de la machine", value: "HERMES", highlight: true },
+                { key: "Rôles installés", value: "AD DS · DNS · DHCP" },
+                { key: "Adresse IP", value: "172.20.0.14", highlight: true },
+                { key: "Masque de sous-réseau", value: "255.255.255.0" },
+                { key: "Passerelle par défaut", value: "172.20.0.3" },
+                { key: "Serveur DNS préféré", value: "127.0.0.1" },
+              ],
+            },
+            {
+              type: "steps",
+              title: "Étapes préalables",
+              items: [
+                "Renommer la machine en « HERMES » via les Propriétés système",
+                "Assigner une adresse IP statique dans les paramètres réseau",
+                "Définir le DNS préféré sur 127.0.0.1 (loopback)",
+                "Vérifier la connectivité réseau avant l'installation",
+              ],
+            },
+          ],
+        },
+        {
+          id: "install",
+          title: "Installation des rôles AD, DNS, DHCP",
+          icon: "📦",
+          content: [
+            { type: "text", text: "Depuis le Gestionnaire de serveur, installez les trois rôles simultanément via l'assistant." },
+            {
+              type: "steps",
+              title: "Procédure d'installation",
+              items: [
+                "Gestionnaire de serveur → Gérer → Ajouter des rôles et fonctionnalités",
+                "Sélectionner « Installation basée sur un rôle ou une fonctionnalité »",
+                "Choisir le serveur HERMES dans le pool de serveurs",
+                "Cocher : Serveur DHCP · Serveur DNS · Services AD DS",
+                "Ne pas sélectionner de fonctionnalités supplémentaires",
+                "Passer les pages de description (DHCP, AD DS, DNS)",
+                "Confirmer et cliquer sur Installer",
+                "Fermer l'assistant à la fin de l'installation",
+              ],
+            },
+            {
+              type: "warning",
+              text: "Une configuration post-installation est requise pour les Services AD DS et le Serveur DHCP. Des liens apparaîtront dans le Gestionnaire de serveur.",
+            },
+          ],
+        },
+        {
+          id: "domain",
+          title: "Configuration Active Directory — Domaine",
+          icon: "🌐",
+          content: [
+            { type: "text", text: "Après l'installation des rôles, promouvez le serveur en contrôleur de domaine et créez la forêt." },
+            {
+              type: "steps",
+              title: "Création du domaine stadiumcompany.com",
+              items: [
+                "Gestionnaire de serveur → cliquer sur le drapeau jaune d'alerte",
+                "Cliquer sur « Promouvoir ce serveur en contrôleur de domaine »",
+                "Sélectionner « Ajouter une nouvelle forêt »",
+                "Nom de domaine racine : stadiumcompany.com",
+                "Définir le mot de passe DSRM : Bts2017$",
+                "Passer l'option DNS (rôle déjà installé)",
+                "Confirmer le nom NetBIOS : STADIUMCOMPANY",
+                "Conserver les chemins d'accès par défaut (C:\\Windows\\NTDS, SYSVOL)",
+                "Vérifier la configuration et lancer l'installation",
+                "Fermer → le serveur redémarre automatiquement",
+              ],
+            },
+            { type: "highlight", label: "Résultat", text: "Le serveur HERMES est désormais contrôleur de domaine pour stadiumcompany.com." },
+          ],
+        },
+        {
+          id: "dhcp",
+          title: "Configuration DHCP — Étendues",
+          icon: "📡",
+          content: [
+            { type: "text", text: "Finalisez la configuration DHCP puis créez les 8 étendues correspondant aux VLANs du réseau." },
+            { type: "steps", title: "Post-installation DHCP", items: ["Gestionnaire de serveur → drapeau → « Terminer la configuration DHCP »", "Utiliser le compte STADIUMCOMPANY\\Administrateur", "Valider et fermer le résumé"] },
+            {
+              type: "table",
+              title: "Tableau des étendues",
+              headers: ["Étendue", "Nom", "IP début", "IP fin", "Masque"],
+              rows: [
+                ["1", "Administration (Vlan 10)", "172.20.0.1", "172.20.0.254", "/24"],
+                ["2", "Équipes (Vlan 20)", "172.20.1.1", "172.20.1.254", "/24"],
+                ["3", "WIFI (Vlan 30)", "172.20.2.1", "172.20.2.126", "/25"],
+                ["4", "Caméra-IP (Vlan 40)", "172.20.2.129", "172.20.2.254", "/25"],
+                ["5", "VIP-Presse (Vlan 50)", "172.20.3.1", "172.20.3.126", "/25"],
+                ["6", "Fournisseurs (Vlan 60)", "172.20.3.129", "172.20.3.190", "/26"],
+                ["7", "Restaurant (Vlan 70)", "172.20.3.193", "172.20.3.222", "/28"],
+                ["8", "Sécurité (Vlan 80)", "172.20.3.225", "172.20.3.254", "/28"],
+              ],
+            },
+            {
+              type: "highlight",
+              label: "Paramètres communs",
+              text: "Routeur : 172.20.0.3 (HSRP) · DNS : 172.20.0.14 · Bail : 5 jours · Exclusion étendue 1 : 172.20.0.1 → 172.20.0.25",
+            },
+          ],
+        },
+        {
+          id: "dns",
+          title: "Configuration DNS",
+          icon: "🔍",
+          content: [
+            { type: "text", text: "Vérifiez la zone de recherche directe créée automatiquement et ajoutez la zone inversée." },
+            {
+              type: "steps",
+              title: "Vérification et zone inversée",
+              items: [
+                "Gestionnaire de serveur → Outils → DNS",
+                "Vérifier : DNS → HERMES → Zones de recherche directes → stadiumcompany.com ✓",
+                "Clic droit sur Zones de recherche inversée → Nouvelle zone…",
+                "Type : Zone principale (intégrée à Active Directory)",
+                "Réplication : Vers tous les serveurs DNS du domaine stadiumcompany.com",
+                "Sélectionner Zone de recherche inversée IPv4",
+                "ID réseau : 172.20.0",
+                "Mises à jour dynamiques : Sécurisées uniquement",
+                "Terminer → Zone 0.20.172.in-addr.arpa créée",
+              ],
+            },
+          ],
+        },
+        {
+          id: "ou",
+          title: "Unités d'organisation (UO)",
+          icon: "🗂️",
+          content: [
+            { type: "text", text: "Créez la structure organisationnelle dans Utilisateurs et ordinateurs Active Directory." },
+            { type: "steps", title: "Création des UO", items: ["Gestionnaire de serveur → Outils → Utilisateurs et ordinateurs Active Directory", "Clic droit sur stadiumcompany.com → Nouveau → Unité d'organisation", "Créer les 7 UO de service principales", "Pour Administration, Équipes, Fournisseurs, Restaurant, VIP-Presse : créer 3 sous-UO"] },
+            {
+              type: "tree",
+              items: [
+                { label: "Administration", sub: ["Utilisateurs", "Groupes", "Ordinateurs"] },
+                { label: "Équipes", sub: ["Utilisateurs", "Groupes", "Ordinateurs"] },
+                { label: "Wifi", sub: [] },
+                { label: "Caméra-IP", sub: [] },
+                { label: "VIP-Presse", sub: ["Utilisateurs", "Groupes", "Ordinateurs"] },
+                { label: "Fournisseurs", sub: ["Utilisateurs", "Groupes", "Ordinateurs"] },
+                { label: "Restaurant", sub: ["Utilisateurs", "Groupes", "Ordinateurs"] },
+              ],
+            },
+          ],
+        },
+        {
+          id: "gpo",
+          title: "Stratégies de groupe (GPO)",
+          icon: "📋",
+          content: [
+            { type: "text", text: "Trois GPO sont déployées sur le domaine pour standardiser et sécuriser les postes." },
+            {
+              type: "gpo",
+              items: [
+                {
+                  name: "Copier et déployer le fond d'écran",
+                  steps: [
+                    "Créer un dossier partagé « Fond d'écran » sur le disque Z:",
+                    "Partage avancé : Lecture pour Ordinateurs du domaine, Contrôle total pour Admins",
+                    "GPO → Config. ordinateur → Préférences → Fichiers → Créer Fond.png vers C:\\Windows\\Web\\Wallpaper\\StadiumCompany\\",
+                    "GPO → Config. utilisateur → Modèles d'admin → Bureau → Papier peint du Bureau → Activer",
+                  ],
+                },
+                {
+                  name: "Partage Map",
+                  steps: [
+                    "Créer un dossier partagé « Map » sur le disque Z:",
+                    "Partage : Lecture pour Utilisateurs, Contrôle total pour Admins du domaine",
+                    "GPO → Config. utilisateur → Préférences → Mappages de lecteurs → Lecteur Mappé",
+                    "Emplacement : \\\\HERMES\\Map · Lettre : M: · Action : Mettre à jour",
+                  ],
+                },
+                {
+                  name: "Empêcher l'accès au panneau de configuration",
+                  steps: [
+                    "GPO → Config. utilisateur → Stratégies → Modèles d'admin → Panneau de configuration",
+                    "Activer : « Interdire l'accès au Panneau de configuration et à l'application Paramètres du PC »",
+                    "Appliquer la GPO au domaine",
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "sites",
+          title: "Site Active Directory — Paris",
+          icon: "🗺️",
+          content: [
+            { type: "text", text: "Créez le site AD correspondant à l'emplacement physique du serveur." },
+            { type: "steps", title: "Configuration du site Paris", items: ["Gestionnaire de serveur → Outils → Sites et services Active Directory", "Clic droit sur Default-First-Site-Name → Renommer → Paris", "Clic droit sur Subnets → Nouveau sous-réseau…", "Préfixe : 172.20.0.0/24", "Sélectionner le site : PARIS", "Valider"] },
+            { type: "highlight", label: "Résultat", text: "Le sous-réseau 172.20.0.0/24 est désormais associé au site Paris dans la topologie AD." },
+          ],
+        },
+        {
+          id: "ftp",
+          title: "Service FTP via IIS",
+          icon: "📤",
+          content: [
+            { type: "text", text: "Le protocole FTP (File Transfer Protocol) permet l'échange de fichiers entre clients et serveur sur TCP/IP. Port 21 pour les commandes, port 20 pour les données." },
+            { type: "steps", title: "Installation et configuration", items: ["Ajouter le rôle Serveur Web (IIS) via le Gestionnaire de serveur", "Cocher : Service FTP + Extensibilité FTP", "Ouvrir le Gestionnaire IIS → Démarrer → Outils d'administration", "Clic droit sur HERMES → Ajouter un site FTP…", "Nom : StadiumCompany · Chemin physique : Z:\\FTP", "Adresse IP : 172.20.0.14 · Port : 21 · Pas de SSL", "Authentification : De base · Autorisation : Tous les utilisateurs", "Permissions : Lecture + Écriture"] },
+            { type: "highlight", label: "Test de connexion", text: "Depuis un poste client : ouvrir l'explorateur Windows → saisir ftp://172.20.0.14 → renseigner le compte utilisateur du domaine." },
+          ],
+        },
+      ];
+
+      const state = { current: 0 };
+      const app = document.getElementById("app");
+
+      function el(tag, attrs = {}, children = []) {
+        const node = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v === null || v === undefined) continue;
+          if (k === "class") node.className = v;
+          else if (k === "text") node.textContent = v;
+          else if (k === "html") node.innerHTML = v;
+          else if (k === "disabled") node.disabled = Boolean(v);
+          else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2).toLowerCase(), v);
+          else node.setAttribute(k, v);
+        }
+        for (const child of children) node.appendChild(child);
+        return node;
+      }
+
+      function setCurrent(i) {
+        state.current = Math.max(0, Math.min(chapters.length - 1, i));
+        render();
+      }
+
+      function render() {
+        app.innerHTML = "";
+        const chapter = chapters[state.current];
+
+        if (!chapter.isCover) app.appendChild(renderTopbar());
+        app.appendChild(chapter.isCover ? renderCover() : renderChapter());
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+
+      function renderTopbar() {
+        const progress = (state.current / (chapters.length - 1)) * 100;
+        return el("div", { class: "topbar" }, [
+          el("button", { class: "home-btn", text: "← Accueil", onclick: () => setCurrent(0) }),
+          el("div", { class: "progress-wrap" }, [el("div", { class: "progress-bar", style: `width:${progress}%` })]),
+          el("span", { class: "counter", text: `${state.current}/${chapters.length - 1}` }),
+        ]);
+      }
+
+      function renderCover() {
+        const tiles = chapters.slice(1).map((ch, idx) =>
+          el(
+            "button",
+            {
+              class: "chapter-tile",
+              onclick: () => setCurrent(idx + 1),
+              "aria-label": `Ouvrir ${ch.title}`,
+            },
+            [el("span", { style: "font-size:20px", text: ch.icon || "📘" }), el("span", { style: "font-size:12px;line-height:1.3", text: ch.title })]
+          )
+        );
+
+        return el("div", { class: "cover" }, [
+          el("div", { class: "cover-grid" }),
+          el("div", { class: "cover-glow" }),
+          el("div", { class: "cover-inner" }, [
+            el("div", { class: "badge", text: "Windows Server 2012 R2" }),
+            el("div", { class: "logo", text: "🏛️" }),
+            el("h1", { class: "cover-title", text: "Active Directory" }),
+            el("p", { class: "cover-subtitle", html: "Guide d'installation &amp; Configuration" }),
+            el("p", { class: "cover-meta", text: "stadiumcompany.com · HERMES · 172.20.0.14" }),
+            el("div", { class: "chapter-grid" }, tiles),
+            el("button", { class: "start-btn", text: "Commencer le tutoriel →", onclick: () => setCurrent(1) }),
+          ]),
+        ]);
+      }
+
+      function renderChapter() {
+        const chapter = chapters[state.current];
+
+        const head = el("div", { class: "chapter-head" }, [
+          el("div", { class: "chapter-head-top" }, [
+            el("span", { style: "font-size:36px", text: chapter.icon || "📘" }),
+            el("div", {}, [
+              el("div", { class: "chapter-kicker", text: `Chapitre ${state.current} / ${chapters.length - 1}` }),
+              el("h2", { class: "chapter-h2", text: chapter.title }),
+            ]),
+          ]),
+          el("div", { class: "sep" }),
+        ]);
+
+        const blocks = el("div", { class: "blocks" }, (chapter.content || []).map(renderBlock).filter(Boolean));
+        const nav = renderNav();
+
+        return el("div", { class: "page" }, [head, blocks, nav]);
+      }
+
+      function renderBlock(block) {
+        if (!block) return null;
+        if (block.type === "text") return el("p", { class: "text", text: block.text });
+        if (block.type === "highlight")
+          return el("div", { class: "highlight" }, [
+            el("div", { class: "label blue", text: block.label || "Info" }),
+            el("p", { style: "margin:0;color:#c8d8f0;font-size:14px;line-height:1.6", text: block.text }),
+          ]);
+        if (block.type === "warning")
+          return el("div", { class: "warning" }, [
+            el("div", { class: "label gold", text: "⚠ Attention" }),
+            el("p", { style: "margin:0;color:#d8c090;font-size:14px;line-height:1.6", text: block.text }),
+          ]);
+        if (block.type === "features") return renderFeatures(block);
+        if (block.type === "config") return renderConfig(block);
+        if (block.type === "steps") return renderSteps(block);
+        if (block.type === "table") return renderTable(block);
+        if (block.type === "tree") return renderTree(block);
+        if (block.type === "gpo") return renderGpo(block);
+        return null;
+      }
+
+      function renderFeatures(block) {
+        const items = (block.items || []).map((f) =>
+          el("div", { class: "feature" }, [
+            el("div", { class: "feature-icon", text: f.icon || "✅" }),
+            el("div", { class: "feature-label", text: f.label || "" }),
+            el("div", { class: "feature-desc", text: f.desc || "" }),
+          ])
+        );
+        return el("div", { class: "features" }, items);
+      }
+
+      function renderConfig(block) {
+        const rows = (block.items || []).map((item) =>
+          el("div", { class: "config-row" }, [
+            el("span", { class: "config-key", text: item.key }),
+            el("code", { class: `config-val ${item.highlight ? "hi" : ""}`, text: item.value }),
+          ])
+        );
+        return el("div", { class: "card" }, [el("div", { class: "card-title", text: block.title || "Configuration" }), ...rows]);
+      }
+
+      function renderSteps(block) {
+        const list = (block.items || []).map((step, idx) =>
+          el("div", { class: "step-item" }, [el("div", { class: "step-n", text: `${idx + 1}` }), el("span", { class: "step-txt", text: step })])
+        );
+        return el("div", {}, [block.title ? el("h3", { class: "steps-title", text: block.title }) : el("div", {}), el("div", { style: "display:flex;flex-direction:column;gap:8px" }, list)]);
+      }
+
+      function renderTable(block) {
+        const title = block.title ? el("h3", { class: "steps-title", text: block.title }) : null;
+        const thead = el("thead", {}, [
+          el("tr", {}, (block.headers || []).map((h) => el("th", { text: h }))),
+        ]);
+        const tbody = el(
+          "tbody",
+          {},
+          (block.rows || []).map((row, j) =>
+            el(
+              "tr",
+              { style: `background:${j % 2 === 0 ? "rgba(255,255,255,0.01)" : "rgba(255,255,255,0.025)"}` },
+              row.map((cell, k) =>
+                el("td", { class: `${k === 0 ? "muted" : ""} ${k >= 2 ? "mono" : ""}`, text: cell })
+              )
+            )
+          )
+        );
+        const table = el("table", {}, [thead, tbody]);
+        return el("div", { style: "overflow-x:auto" }, [title, table].filter(Boolean));
+      }
+
+      function renderTree(block) {
+        const root = el("div", { class: "tree-root", text: "📁 stadiumcompany.com" });
+        const nodes = (block.items || []).map((item) => {
+          const node = el("div", { class: "tree-node" }, [
+            el("div", { class: "tree-node-label" }, [
+              el("span", { class: "tree-branch", text: "├──" }),
+              el("span", { text: `📁 ${item.label}` }),
+            ]),
+          ]);
+          (item.sub || []).forEach((s, idx) => {
+            node.appendChild(
+              el("div", { class: "tree-leaf" }, [
+                el("span", { class: "tree-leaf-branch", text: idx === item.sub.length - 1 ? "└──" : "├──" }),
+                el("span", { text: `📄 ${s}` }),
+              ])
+            );
+          });
+          return node;
+        });
+        return el("div", { class: "tree" }, [root, ...nodes]);
+      }
+
+      function renderGpo(block) {
+        const cards = (block.items || []).map((gpo) =>
+          el("div", { class: "gpo" }, [
+            el("div", { class: "gpo-head" }, [el("span", { text: "📋" }), el("span", { text: gpo.name })]),
+            el(
+              "div",
+              { class: "gpo-body" },
+              (gpo.steps || []).map((s) => el("div", { class: "gpo-step" }, [el("b", { text: "▸" }), el("span", { text: s })]))
+            ),
+          ])
+        );
+        return el("div", { class: "gpo-list" }, cards);
+      }
+
+      function renderNav() {
+        const prevLabel =
+          state.current > 0
+            ? chapters[state.current - 1].isCover
+              ? "Accueil"
+              : chapters[state.current - 1].title
+            : "";
+        const prev = el("button", {
+          class: "nav-prev",
+          text: `← ${prevLabel}`,
+          onclick: () => setCurrent(state.current - 1),
+          disabled: state.current === 0,
+        });
+
+        if (state.current < chapters.length - 1) {
+          const next = el("button", {
+            class: "nav-next",
+            text: `${chapters[state.current + 1].title} →`,
+            onclick: () => setCurrent(state.current + 1),
+          });
+          return el("div", { class: "nav" }, [prev, next]);
+        }
+
+        return el("div", { class: "nav" }, [prev, el("div", {})]);
+      }
+
+      render();
+    </script>
+  </body>
+</html>
+
