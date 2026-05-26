@@ -1,0 +1,978 @@
+const { useState } = React;
+
+/* ─────────────────────────────────────────────
+   DONNÉES
+───────────────────────────────────────────── */
+const modules = [
+  {
+    id: 1,
+    label: "Installation",
+    color: "#3b82f6",
+    icon: "💿",
+    steps: [
+      {
+        title: "Introduction & Prérequis",
+        icon: "📖",
+        content: (
+          <div>
+            <p className="intro-text">
+              <strong>pfSense</strong> est un pare-feu open source basé sur <strong>FreeBSD</strong>. Il utilise le pare-feu à états <em>Packet Filter</em>, des fonctions de routage et de NAT pour connecter plusieurs réseaux. Il est équivalent aux routeurs professionnels propriétaires et convient pour sécuriser un réseau d'entreprise.
+            </p>
+            <p className="section-subtitle">Configuration matérielle</p>
+            <div className="topo-table">
+              <div className="topo-row header"><span>Composant</span><span>Minimale</span><span>Recommandée</span></div>
+              <div className="topo-row"><span>Processeur</span><span>600 MHz</span><span>1 GHz</span></div>
+              <div className="topo-row"><span>Mémoire vive</span><span>512 Mo</span><span>1 Go</span></div>
+              <div className="topo-row"><span>Stockage</span><span colSpan={2}>&gt; 6 Go</span></div>
+            </div>
+            <div className="tip-box tip-blue">
+              <span className="tip-icon">🌐</span>
+              <div>Téléchargement de l'ISO : <a href="https://www.pfsense.org/download/" target="_blank" rel="noreferrer">pfsense.org/download/</a></div>
+            </div>
+            <p className="section-subtitle">Vérification d'intégrité (PowerShell)</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">PS&gt;</span> Get-FileHash pfSense-CE-2.6.0-RELEASE-p1-amd64.iso.gz -Algorithm SHA256 | format-list</div>
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">🔍</span>
+              <div>Comparez les deux empreintes SHA256. Si elles sont identiques, le fichier est intègre.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Infrastructure & Topologie",
+        icon: "🗺️",
+        content: (
+          <div>
+            <p className="intro-text">Le labo nécessite <strong>3 machines</strong> sur des réseaux distincts.</p>
+            <div className="topo-table">
+              <div className="topo-row header"><span>Machine</span><span>Réseau</span><span>Adresse IP</span></div>
+              <div className="topo-row"><span>🔥 PfSense (heimdall)</span><span>WAN Bridge</span><span><code>192.168.1.250/24</code></span></div>
+              <div className="topo-row"><span>🖥️ AD/DNS (hermes)</span><span>sitka_lan</span><span><code>172.20.0.14/24</code></span></div>
+              <div className="topo-row"><span>💻 Debian/Ubuntu/Win</span><span>opt_lan</span><span><code>DHCP</code></span></div>
+            </div>
+            <p className="section-subtitle">Cartes réseau VMware</p>
+            <div className="file-block">
+              <div className="file-header">⚙️ Configuration VMware</div>
+              <pre>{`Network Adapter 1  →  Bridge  →  192.168.1.0/24  (WAN)
+Network Adapter 2  →  LAN_1   →  172.20.0.0/24   (sitka_lan)
+Network Adapter 3  →  LAN_2   →  192.168.2.0/24  (opt_lan)`}</pre>
+            </div>
+            <div className="info-grid">
+              <div className="info-card"><span className="info-icon">🌐</span><div><div className="info-label">Passerelle WAN</div><div className="info-value"><code>192.168.1.1</code></div></div></div>
+              <div className="info-card"><span className="info-icon">🏠</span><div><div className="info-label">Domaine AD</div><div className="info-value"><code>sitka.local</code></div></div></div>
+              <div className="info-card"><span className="info-icon">💾</span><div><div className="info-label">Disque dur</div><div className="info-value">20 Go (défaut)</div></div></div>
+              <div className="info-card"><span className="info-icon">🧠</span><div><div className="info-label">Mémoire vive</div><div className="info-value">1 Go</div></div></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Lancement de l'installation",
+        icon: "⚙️",
+        content: (
+          <div>
+            <p className="intro-text">Une fois l'ISO monté dans VMware, suivez les étapes de l'installeur pfSense.</p>
+            <div className="steps-list">
+              {[
+                ["Accepter le contrat de licence", ""],
+                ["Sélectionner Install puis OK", ""],
+                ["Choisir le clavier français", ""],
+                ["Tester le clavier", ""],
+                ["Choisir le système de fichiers UFS", "Pour la création des partitions"],
+                ["Ne pas aller sur le Shell", "Répondre Non à la question"],
+                ["Redémarrer la machine", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">⚠️</span>
+              <div>Après redémarrage, seules <strong>em0</strong> et <strong>em1</strong> sont reconnues. Le clavier sera en QWERTY malgré le choix FR — c'est normal.</div>
+            </div>
+            <p className="section-subtitle">Mettre temporairement le clavier en FR</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">#</span> kbdcontrol -l fr</div>
+              <div className="cmd-line cmd-comment"># ou</div>
+              <div className="cmd-line"><span className="prompt">#</span> kbdcontrol -l /usr/share/syscons/keymaps/fr.iso.kbd</div>
+            </div>
+            <div className="tip-box tip-blue">
+              <span className="tip-icon">💡</span>
+              <div>Cette configuration est <strong>temporaire</strong>. Elle sera permanente après configuration de l'interface web.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Déclaration & Assignation des interfaces",
+        icon: "🔌",
+        content: (
+          <div>
+            <p className="intro-text">On va déclarer et configurer les 3 interfaces : <strong>WAN</strong>, <strong>LAN</strong> et <strong>OPT1</strong> depuis le menu pfSense (option 1, puis option 2).</p>
+            <p className="section-subtitle">Interface WAN</p>
+            <div className="file-block">
+              <div className="file-header">🌐 WAN — 192.168.1.250/24</div>
+              <pre>{`IP           : 192.168.1.250
+Masque       : 255.255.255.0
+Passerelle   : 192.168.1.1
+DHCP IPv4    : Non
+IPv6         : Non
+WebConfigurator sur WAN : Non (sécurité)`}</pre>
+            </div>
+            <p className="section-subtitle">Interface LAN</p>
+            <div className="file-block">
+              <div className="file-header">🏠 LAN — 172.20.0.250/24</div>
+              <pre>{`IP           : 172.20.0.250
+Masque       : 255.255.255.0
+Passerelle   : Non
+DHCP IPv4    : Oui → étendue 172.20.0.20 à 172.20.0.30
+IPv6         : Non
+WebConfigurator sur LAN : Oui`}</pre>
+            </div>
+            <p className="section-subtitle">Interface OPT1</p>
+            <div className="file-block">
+              <div className="file-header">🔀 OPT1 — 192.168.2.250/24</div>
+              <pre>{`IP           : 192.168.2.250
+Masque       : 255.255.255.0
+Passerelle   : Non
+DHCP IPv4    : Non
+IPv6         : Non`}</pre>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    id: 2,
+    label: "Configuration de base",
+    color: "#10b981",
+    icon: "🧰",
+    steps: [
+      {
+        title: "Test de connectivité",
+        icon: "📡",
+        content: (
+          <div>
+            <p className="intro-text">Depuis la machine AD (<code>hermes</code>), tester la liaison avec pfSense et la table de routage.</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping 192.168.1.250 <span className="cmd-comment"># Interface WAN pfSense</span></div>
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping 172.20.0.250 <span className="cmd-comment"># Interface LAN pfSense</span></div>
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping 192.168.2.250 <span className="cmd-comment"># Interface OPT1 pfSense</span></div>
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping 192.168.1.1   <span className="cmd-comment"># Passerelle box</span></div>
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping 8.8.4.4       <span className="cmd-comment"># Test connexion Internet</span></div>
+              <div className="cmd-line"><span className="prompt">PS C:\&gt;</span> ping www.google.fr <span className="cmd-comment"># Test résolution DNS</span></div>
+            </div>
+            <p className="section-subtitle">Accès à l'interface Web pfSense</p>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">🌐</span>
+              <div>
+                Naviguer vers <code>http://172.20.0.250</code><br />
+                Login : <strong>admin</strong> / Mot de passe : <strong>pfsense</strong>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Wizard de configuration",
+        icon: "🧙",
+        content: (
+          <div>
+            <p className="intro-text">Un wizard à <strong>9 étapes</strong> se lance automatiquement. Voici les paramètres importants.</p>
+            <div className="steps-list">
+              {[
+                ["Étapes 1-2", "Informations générales SAV Netgate (ignorer)"],
+                ["Étape 3 — Nom & Domaine", "Nom : heimdall / Domaine : sitka.local"],
+                ["Étape 4 — NTP", "Serveur NTP : fr.pool.org / Timezone : Europe/Paris"],
+                ["Étape 5 — WAN", "Déjà configurée, laisser tel quel"],
+                ["Étape 6 — LAN", "Déjà configurée, laisser tel quel"],
+                ["Étape 7 — Mot de passe admin", "Changer le mot de passe par défaut"],
+                ["Étape 8 — Reload", "Cliquer sur Reload pour appliquer"],
+                ["Étape 9 — Finish", "Cliquer sur Finish"],
+              ].map(([label, desc], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{label}</div><div className="step-item-note">{desc}</div></div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box tip-blue">
+              <span className="tip-icon">🔄</span>
+              <div>Pour relancer le wizard : <strong>Système → Setup Wizard</strong></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Clavier FR permanent + VMware Tools",
+        icon: "⌨️",
+        content: (
+          <div>
+            <p className="intro-text">On installe les paquets <strong>shellcmd</strong> et <strong>VMware Tools</strong> pour configurer le clavier de façon permanente.</p>
+            <div className="steps-list">
+              {[
+                ["Aller dans Système → Package Manager", ""],
+                ["Rechercher et installer shellcmd", ""],
+                ["Rechercher et installer open-vm-tools (VMware Tools)", ""],
+                ["Aller dans Système → shellcmd", ""],
+                ["Dans le champ commande, taper :", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">cmd&gt;</span> kbdcontrol -l /usr/share/syscons/keymaps/fr.iso.kbd</div>
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">✅</span>
+              <div>Redémarrer pfSense et vérifier que le clavier est en <strong>AZERTY</strong>.</div>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    id: 3,
+    label: "Sécurité",
+    color: "#f59e0b",
+    icon: "🔐",
+    steps: [
+      {
+        title: "Sécuriser la console par mot de passe",
+        icon: "🔒",
+        content: (
+          <div>
+            <p className="intro-text">Activer la protection de la console pfSense pour éviter tout accès non autorisé direct.</p>
+            <div className="steps-list">
+              {[
+                ["Aller dans Système → Avancé → Admin Access", ""],
+                ["Cocher la case Console menu (protection par mot de passe)", ""],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">✅</span>
+              <div>La console affiche désormais un <strong>prompt de connexion</strong>.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Sécuriser l'accès SSH",
+        icon: "🛡️",
+        content: (
+          <div>
+            <p className="intro-text">Activer SSH avec un port non standard pour renforcer la sécurité.</p>
+            <div className="steps-list">
+              {[
+                ["Système → Avancé → Admin Access", ""],
+                ["Activer SSH", ""],
+                ["Changer le port SSH par défaut → 2121", "Toujours changer les ports par défaut"],
+                ["Optionnel : configurer une auth par clé privée/publique", "Plus sécurisé qu'un mot de passe"],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Créer une règle pare-feu pour SSH (port WAN)</p>
+            <div className="steps-list">
+              {[
+                ["Firewall → Rules → WAN", ""],
+                ["Cliquer sur Add (↑)", ""],
+                ["Protocol : TCP / Destination port : 2121", ""],
+                ["Sauvegarder et Apply Changes", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Test de connexion SSH (depuis LAN)</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">PS&gt;</span> ssh admin@172.20.0.250 -p 2121</div>
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">⚠️</span>
+              <div>Sur <strong>Windows 2016</strong>, SSH n'est pas natif — il faut l'installer manuellement. Sur Windows 2019/10, SSH est disponible dans les fonctionnalités optionnelles.</div>
+            </div>
+            <p className="section-subtitle">Vérifier l'empreinte de la clé publique SSH</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">#</span> ls -la /etc/ssh</div>
+              <div className="cmd-line"><span className="prompt">#</span> ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub</div>
+            </div>
+            <div className="tip-box tip-blue">
+              <span className="tip-icon">🔍</span>
+              <div>Comparer l'empreinte affichée ici avec celle envoyée lors de la connexion SSH. Elles doivent être identiques.</div>
+            </div>
+            <p className="section-subtitle">Connexion SSH depuis l'extérieur (WAN)</p>
+            <div className="steps-list">
+              {[
+                ["Ouvrir le port 2121 sur la box internet (redirection de port)", ""],
+                ["Déterminer votre IP publique via whatismyip.com", ""],
+                ["Installer JuiceSSH sur smartphone (Google Play)", ""],
+                ["Se mettre en 4G (pas en Wi-Fi !) car pfSense bloque les IP hors périmètre", ""],
+                ["Se connecter : ssh admin@<IP_publique> -p 2121", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">ℹ️</span>
+              <div>L'<strong>échec de connexion depuis l'extérieur</strong> est normal si les adresses privées sont bloquées. Vérifier : <strong>Interface → WAN → cocher "Block private networks"</strong>.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Sécuriser l'interface Web (HTTPS)",
+        icon: "🔏",
+        content: (
+          <div>
+            <p className="intro-text">Mettre en place HTTPS avec un certificat signé par une <strong>autorité de certification interne</strong>.</p>
+            <p className="section-subtitle">1. Créer une autorité de certification interne</p>
+            <div className="steps-list">
+              {[
+                ["Système → Cert Manager → CAs", ""],
+                ["Cliquer sur Add", ""],
+                ["Method : Create an internal Certificate Authority", ""],
+                ["Remplir les champs (nom, pays, organisation…)", "Exemple : sitka-CA"],
+                ["Sauvegarder", "Le CA apparaît dans la liste"],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">2. Générer un certificat web</p>
+            <div className="steps-list">
+              {[
+                ["Système → Cert Manager → Certificates", ""],
+                ["Cliquer sur Add/Sign", ""],
+                ["Method : Create an internal Certificate", ""],
+                ["Certificate Authority : choisir sitka-CA", ""],
+                ["Certificate Type : Server Certificate", ""],
+                ["Remplir CN (ex : heimdall.sitka.local)", ""],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">3. Injecter le certificat dans pfSense</p>
+            <div className="steps-list">
+              {[
+                ["Système → Avancé → Admin Access", ""],
+                ["SSL/TLS Certificate : sélectionner le certificat créé", ""],
+                ["Laisser le port HTTPS par défaut (443)", ""],
+                ["Max Connections : 2 (2 connexions simultanées max)", ""],
+                ["Cocher : Disable webConfigurator redirect rule", "Bloquer le HTTP"],
+                ["Cocher : Browser HTTP_REFERER enforcement", "Bloquer la mémorisation du navigateur"],
+                ["Sauvegarder (le navigateur redémarre sur HTTPS)", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">🌐</span>
+              <div>Accéder à : <code>https://172.20.0.250</code></div>
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">⚠️</span>
+              <div>Le navigateur affichera une <strong>alerte de certificat non reconnu</strong>. Pour la résoudre, importer le certificat de l'autorité de certification racine dans le magasin de confiance Windows.</div>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    id: 4,
+    label: "LDAP / LDAPS",
+    color: "#8b5cf6",
+    icon: "📁",
+    steps: [
+      {
+        title: "Test connectivité LDAP/LDAPS sur hermes",
+        icon: "🔬",
+        content: (
+          <div>
+            <p className="intro-text">Tester la connectivité LDAP et LDAPS depuis le contrôleur de domaine <strong>hermes</strong>.</p>
+            <p className="section-subtitle">Test LDAP (port 389)</p>
+            <div className="steps-list">
+              {[
+                ["Clic droit → Démarrer → Exécuter", ""],
+                ["Taper : ldp.exe", "Ouvre l'explorateur LDAP"],
+                ["Menu Se connecter → Serveur : hermes.sitka.local / Port : 389", ""],
+                ["Vérifier que les partitions d'annuaire s'affichent", "Connexion OK"],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Test LDAPS (port 636) — avant installation du certificat</p>
+            <div className="steps-list">
+              {[
+                ["Même procédure mais Port : 636 + cocher SSL", ""],
+                ["Message d'erreur attendu : le contrôleur ne supporte pas LDAPS", "Normal car pas de certificat"],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="info-grid">
+              <div className="info-card"><span className="info-icon">📡</span><div><div className="info-label">LDAP</div><div className="info-value">Port <code>389</code> — non chiffré</div></div></div>
+              <div className="info-card"><span className="info-icon">🔒</span><div><div className="info-label">LDAPS</div><div className="info-value">Port <code>636</code> — SSL/TLS</div></div></div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Installer l'AC sur hermes (pour LDAPS)",
+        icon: "🏛️",
+        content: (
+          <div>
+            <p className="intro-text">Pour activer LDAPS, il faut installer une <strong>autorité de certification</strong> sur le contrôleur de domaine hermes.</p>
+            <p className="section-subtitle">Ajouter le rôle</p>
+            <div className="steps-list">
+              {[
+                ["Gestionnaire de serveur → Gérer → Ajouter des rôles", ""],
+                ["Vérifier l'IP/nom du serveur hermes → Suivant", ""],
+                ["Cocher Services de Certificats Active Directory", "Ajouter les fonctionnalités requises"],
+                ["Laisser les options suivantes par défaut → Suivant", ""],
+                ["Sélectionner uniquement : Autorité de certification", ""],
+                ["Cliquer sur Installer puis sur Configurer les services AD CS", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Configurer le rôle AC</p>
+            <div className="steps-list">
+              {[
+                ["Vérifier les credentials : domaine\\administrateur obligatoire", ""],
+                ["Cocher Autorité de certification", ""],
+                ["Type : Autorité de certification d'entreprise", "Pour utiliser l'annuaire LDAP"],
+                ["Type d'AC : Autorité de certification racine", ""],
+                ["Créer une nouvelle clé privée", ""],
+                ["Choisir les paramètres de chiffrement (plus long = plus sûr)", "Impact sur les performances"],
+                ["Nom commun : hermes-CA", ""],
+                ["Période de validité : supérieure aux certificats émis", ""],
+                ["Laisser les dossiers par défaut → Configurer", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">✅</span>
+              <div>Retester LDAPS avec ldp.exe sur port 636 → La connexion doit maintenant fonctionner.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Créer les comptes AD",
+        icon: "👥",
+        content: (
+          <div>
+            <p className="intro-text">Créer les comptes nécessaires sur le contrôleur de domaine <strong>hermes</strong>.</p>
+            <div className="topo-table">
+              <div className="topo-row header"><span>Compte</span><span>Type</span><span>Groupe</span><span>Rôle</span></div>
+              <div className="topo-row"><span><code>kaiser</code></span><span>Utilisateur</span><span>pfsense</span><span>Test connexion</span></div>
+              <div className="topo-row"><span><code>cesar</code></span><span>Utilisateur</span><span>pfsense</span><span>Test connexion</span></div>
+              <div className="topo-row"><span><code>pfsensead</code></span><span>Utilisateur</span><span>pfsense</span><span>Liaison pfSense ↔ AD</span></div>
+              <div className="topo-row"><span><code>pfsense</code></span><span>Groupe</span><span>—</span><span>Groupe de référence</span></div>
+            </div>
+            <div className="tip-box tip-blue">
+              <span className="tip-icon">ℹ️</span>
+              <div>Le compte <strong>pfsensead</strong> sert de compte de service pour que pfSense puisse requêter l'annuaire LDAP.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Configurer LDAP sur pfSense",
+        icon: "⚙️",
+        content: (
+          <div>
+            <p className="intro-text">Créer les serveurs d'authentification LDAP et LDAPS dans pfSense.</p>
+            <p className="section-subtitle">Authentification LDAP (port 389)</p>
+            <div className="steps-list">
+              {[
+                ["Système → User Manager → Authentication Servers", ""],
+                ["Cliquer sur Add", ""],
+                ["Type : LDAP", ""],
+                ["Hostname : hermes.sitka.local / Port : 389", ""],
+                ["Transport : Standard TCP", ""],
+                ["Bind Credentials : cn=pfsensead,cn=Users,dc=sitka,dc=local", ""],
+                ["Base DN : dc=sitka,dc=local", ""],
+                ["Authentication containers : cn → cliquer sur Select a container", "Choisir l'OU qui héberge les utilisateurs"],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Authentification LDAPS (port 636)</p>
+            <div className="steps-list">
+              {[
+                ["Même procédure que LDAP", ""],
+                ["Transport : SSL/TLS", ""],
+                ["Port : 636", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box">
+              <span className="tip-icon">⚠️</span>
+              <div>La boîte de dialogue LDAPS ne s'ouvrira pas et un <strong>message d'erreur</strong> apparaîtra. C'est normal — il faut d'abord importer le certificat de l'AC hermes.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Diagnostic Wireshark & Import certificat",
+        icon: "🔍",
+        content: (
+          <div>
+            <p className="intro-text">Analyser le trafic avec Wireshark pour comprendre l'échec LDAPS, puis importer le certificat de l'AC hermes.</p>
+            <p className="section-subtitle">Analyse Wireshark</p>
+            <div className="steps-list">
+              {[
+                ["Installer Wireshark sur hermes", ""],
+                ["Lancer une capture de trames", ""],
+                ["Rejouer la tentative de connexion LDAPS", ""],
+                ["Filtrer : ssl ou tls dans Wireshark", ""],
+                ["Analyser l'échange :", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="topo-table">
+              <div className="topo-row header"><span>Trame</span><span>Source</span><span>Destination</span><span>Résultat</span></div>
+              <div className="topo-row"><span>Client Hello</span><span>pfSense</span><span>hermes</span><span>→ connexion initiée</span></div>
+              <div className="topo-row"><span>Server Hello + Cert</span><span>hermes</span><span>pfSense</span><span>→ certificat envoyé</span></div>
+              <div className="topo-row"><span>Alert</span><span>pfSense</span><span>hermes</span><span>❌ Certificat non reconnu</span></div>
+            </div>
+            <p className="section-subtitle">Exporter le certificat AC de hermes</p>
+            <div className="steps-list">
+              {[
+                ["Ouvrir une console MMC → Ajouter Certificates → Computer Account", ""],
+                ["Trusted Root CAs → hermes-CA → Exporter", ""],
+                ["Format : X.509 encodé DER (*.cer)", ""],
+                ["Enregistrer sous : hermes-ca.cer", ""],
+                ["Ouvrir le fichier avec le Bloc-notes → Copier le contenu", "Le certificat commence par -----BEGIN CERTIFICATE-----"],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Importer le certificat dans pfSense</p>
+            <div className="steps-list">
+              {[
+                ["Système → Cert Manager → CAs → Add", ""],
+                ["Method : Import an existing Certificate Authority", ""],
+                ["Donner un nom : hermes-CA", ""],
+                ["Coller le contenu du certificat dans Certificate data", ""],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Tester la connexion SSL depuis pfSense</p>
+            <div className="cmd-block">
+              <div className="cmd-line"><span className="prompt">#</span> openssl s_client -showcerts -connect hermes.sitka.local:636</div>
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">✅</span>
+              <div>Le handshake SSL est maintenant <strong>établi et chiffré</strong>. Vous pouvez terminer la configuration LDAPS.</div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Vérification & Groupes pfSense",
+        icon: "✅",
+        content: (
+          <div>
+            <p className="intro-text">Tester les authentifications et configurer les groupes pfSense.</p>
+            <p className="section-subtitle">Vérifier LDAP et LDAPS</p>
+            <div className="steps-list">
+              {[
+                ["Diagnostics → Authentication", ""],
+                ["Sélectionner le serveur LDAP → tester avec le compte kaiser", "Doit réussir"],
+                ["Sélectionner le serveur LDAPS → tester avec le compte kaiser", "Doit réussir"],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Créer le groupe pfsense</p>
+            <div className="steps-list">
+              {[
+                ["Système → User Manager → Groups → Add", ""],
+                ["Nom du groupe : pfsense (même nom que dans l'AD)", ""],
+                ["Sauvegarder, puis éditer le groupe", ""],
+                ["Assigned Privileges → Add", ""],
+                ["Sélectionner : WebCfg – All pages", "Droits admin complets"],
+                ["Sauvegarder", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <p className="section-subtitle">Test de connexion avec un compte LDAP</p>
+            <div className="steps-list">
+              {[
+                ["Se déconnecter de l'interface web pfSense", ""],
+                ["Se connecter avec le compte kaiser", ""],
+                ["Vérifier dans Système → User Manager que kaiser est connecté via LDAP", ""],
+              ].map(([txt, note], i) => (
+                <div className="step-item" key={i}>
+                  <span className="step-num-small">{i + 1}</span>
+                  <div><div className="step-item-text">{txt}</div>{note && <div className="step-item-note">{note}</div>}</div>
+                </div>
+              ))}
+            </div>
+            <div className="tip-box tip-green">
+              <span className="tip-icon">🎉</span>
+              <div>pfSense est maintenant configuré avec l'authentification <strong>LDAP</strong> et <strong>LDAPS</strong> via Active Directory !</div>
+            </div>
+          </div>
+        ),
+      },
+    ],
+  },
+];
+
+/* ─────────────────────────────────────────────
+   COMPOSANT PRINCIPAL
+───────────────────────────────────────────── */
+function PfsenseTuto() {
+  const [activeMod, setActiveMod] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+
+  const mod = modules[activeMod];
+  const step = mod.steps[activeStep];
+  const totalSteps = mod.steps.length;
+  const color = mod.color;
+
+  const goStep = (n) => {
+    if (n < 0) {
+      if (activeMod > 0) { setActiveMod(activeMod - 1); setActiveStep(modules[activeMod - 1].steps.length - 1); }
+    } else if (n >= totalSteps) {
+      if (activeMod < modules.length - 1) { setActiveMod(activeMod + 1); setActiveStep(0); }
+    } else {
+      setActiveStep(n);
+    }
+  };
+
+  const isFirst = activeMod === 0 && activeStep === 0;
+  const isLast = activeMod === modules.length - 1 && activeStep === totalSteps - 1;
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Bricolage+Grotesque:wght@400;600;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .app { min-height: 100vh; background: #0a0c10; color: #e2e8f0; font-family: 'Bricolage Grotesque', sans-serif; display: flex; flex-direction: column; }
+
+        /* ── HEADER ── */
+        .header {
+          background: #0f1318;
+          border-bottom: 1px solid #1e2430;
+          padding: 1.25rem 1.75rem;
+          position: sticky; top: 0; z-index: 100;
+        }
+        .header-top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+        .logo {
+          width: 46px; height: 46px; border-radius: 12px;
+          background: linear-gradient(135deg, #e55b2d, #c0392b);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 1.4rem;
+          box-shadow: 0 0 22px rgba(229,91,45,0.45);
+        }
+        .header-title { font-size: 1.45rem; font-weight: 800; color: #f1f5f9; letter-spacing: -.5px; }
+        .header-sub { font-size: .75rem; color: #64748b; font-family: 'IBM Plex Mono', monospace; margin-top: .15rem; }
+
+        /* ── MODULE TABS ── */
+        .module-tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
+        .mod-btn {
+          background: transparent;
+          border: 1.5px solid #1e2430;
+          color: #64748b;
+          padding: .4rem 1rem;
+          border-radius: 8px;
+          cursor: pointer;
+          font-family: 'Bricolage Grotesque', sans-serif;
+          font-size: .82rem; font-weight: 600;
+          display: flex; align-items: center; gap: .45rem;
+          transition: all .2s;
+        }
+        .mod-btn:hover { border-color: var(--mc); color: var(--mc); background: color-mix(in srgb, var(--mc) 8%, transparent); }
+        .mod-btn.active { background: var(--mc); border-color: var(--mc); color: #fff; box-shadow: 0 0 14px color-mix(in srgb, var(--mc) 50%, transparent); }
+        .mod-badge { background: rgba(255,255,255,.22); border-radius: 5px; padding: .05rem .38rem; font-size: .68rem; font-family: 'IBM Plex Mono', monospace; }
+
+        /* ── MAIN ── */
+        .layout { display: flex; flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; gap: 0; }
+
+        /* sidebar */
+        .sidebar {
+          width: 220px; flex-shrink: 0;
+          border-right: 1px solid #1e2430;
+          padding: 1.5rem 1rem;
+          position: sticky; top: 96px;
+          height: calc(100vh - 96px);
+          overflow-y: auto;
+        }
+        .sidebar-title { font-size: .7rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .8px; font-family: 'IBM Plex Mono', monospace; margin-bottom: .75rem; }
+        .sidebar-item {
+          display: flex; align-items: flex-start; gap: .55rem;
+          padding: .55rem .65rem; border-radius: 8px;
+          cursor: pointer; transition: all .18s;
+          font-size: .82rem; color: #64748b; margin-bottom: .2rem;
+          border: 1.5px solid transparent;
+        }
+        .sidebar-item:hover { background: #161b24; color: #cbd5e1; }
+        .sidebar-item.active { background: color-mix(in srgb, var(--mc) 12%, transparent); border-color: color-mix(in srgb, var(--mc) 35%, transparent); color: var(--mc); font-weight: 600; }
+        .sidebar-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+        .sidebar-num { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: #334155; flex-shrink: 0; padding-top: .22rem; }
+
+        /* content */
+        .content { flex: 1; padding: 2rem 2.25rem; overflow-y: auto; }
+
+        .step-header {
+          display: flex; align-items: center; gap: 1rem;
+          margin-bottom: 1.75rem; padding-bottom: 1.5rem;
+          border-bottom: 1px solid #1e2430;
+        }
+        .step-icon-big {
+          font-size: 2rem; width: 54px; height: 54px;
+          display: flex; align-items: center; justify-content: center;
+          background: #161b24; border: 1.5px solid #1e2430; border-radius: 12px;
+        }
+        .step-title-big { font-size: 1.55rem; font-weight: 800; color: #f1f5f9; line-height: 1.2; }
+        .step-sub { font-size: .78rem; color: #475569; font-family: 'IBM Plex Mono', monospace; margin-top: .25rem; }
+
+        /* progress */
+        .progress-bar { height: 3px; background: #1e2430; border-radius: 2px; overflow: hidden; margin-bottom: 1.75rem; }
+        .progress-fill { height: 100%; background: var(--mc); transition: width .4s ease; }
+
+        /* nav */
+        .nav-actions { display: flex; justify-content: space-between; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #1e2430; }
+        .nav-btn {
+          background: #161b24; border: 1.5px solid #1e2430; color: #cbd5e1;
+          padding: .55rem 1.35rem; border-radius: 8px; cursor: pointer;
+          font-family: 'Bricolage Grotesque', sans-serif; font-size: .88rem; font-weight: 600;
+          transition: all .2s; display: flex; align-items: center; gap: .45rem;
+        }
+        .nav-btn:hover { border-color: var(--mc); color: var(--mc); }
+        .nav-btn:disabled { opacity: .3; cursor: not-allowed; pointer-events: none; }
+        .nav-btn.primary { background: var(--mc); border-color: var(--mc); color: #fff; }
+        .nav-btn.primary:hover { filter: brightness(1.1); }
+
+        /* ── CONTENU ── */
+        .intro-text { color: #94a3b8; line-height: 1.75; margin-bottom: 1.25rem; font-size: .93rem; }
+        .section-subtitle { font-size: .78rem; font-weight: 700; color: var(--mc); text-transform: uppercase; letter-spacing: 1px; margin: 1.5rem 0 .7rem; font-family: 'IBM Plex Mono', monospace; }
+
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .65rem; margin-bottom: 1.25rem; }
+        .info-card {
+          background: #0f1318; border: 1.5px solid #1e2430; border-radius: 10px;
+          padding: .8rem 1rem; display: flex; align-items: center; gap: .75rem;
+          transition: border-color .2s;
+        }
+        .info-card:hover { border-color: var(--mc); }
+        .info-icon { font-size: 1.3rem; }
+        .info-label { font-size: .68rem; color: #475569; font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; }
+        .info-value { font-size: .85rem; color: #e2e8f0; margin-top: .12rem; }
+        .info-value a { color: #60a5fa; text-decoration: none; }
+        .info-value a:hover { text-decoration: underline; }
+
+        .tip-box {
+          display: flex; gap: .75rem; padding: .85rem 1rem;
+          background: rgba(229,91,45,.06); border: 1.5px solid rgba(229,91,45,.2);
+          border-left: 3px solid #e55b2d; border-radius: 0 8px 8px 0;
+          margin: .9rem 0; font-size: .87rem; color: #94a3b8; line-height: 1.65;
+        }
+        .tip-box.tip-blue { background: rgba(96,165,250,.06); border-color: rgba(96,165,250,.2); border-left-color: #60a5fa; }
+        .tip-box.tip-green { background: rgba(52,211,153,.06); border-color: rgba(52,211,153,.2); border-left-color: #34d399; }
+        .tip-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+
+        .cmd-block {
+          background: #070a0d; border: 1.5px solid #1e2430; border-radius: 10px;
+          padding: .9rem 1.15rem; margin: .7rem 0;
+          font-family: 'IBM Plex Mono', monospace; font-size: .8rem;
+        }
+        .cmd-line { display: flex; gap: .55rem; padding: .18rem 0; color: #e2e8f0; line-height: 1.5; flex-wrap: wrap; }
+        .prompt { color: var(--mc); user-select: none; flex-shrink: 0; }
+        .cmd-comment { color: #334155; }
+
+        .file-block { background: #070a0d; border: 1.5px solid #1e2430; border-radius: 10px; overflow: hidden; margin: .7rem 0; }
+        .file-header { background: #0f1318; border-bottom: 1px solid #1e2430; padding: .5rem 1rem; font-size: .75rem; color: #475569; font-family: 'IBM Plex Mono', monospace; }
+        .file-block pre { padding: .9rem 1.15rem; font-family: 'IBM Plex Mono', monospace; font-size: .8rem; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; line-height: 1.75; }
+
+        .topo-table { border: 1.5px solid #1e2430; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; }
+        .topo-row { display: grid; padding: .55rem 1.1rem; font-size: .87rem; border-bottom: 1px solid #161b24; }
+        .topo-row:last-child { border-bottom: none; }
+        .topo-row.header { background: #0f1318; font-size: .72rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .5px; font-family: 'IBM Plex Mono', monospace; }
+        .topo-row span:first-child { color: #64748b; }
+        .topo-row span:not(:first-child) { color: #e2e8f0; }
+
+        .topo-row { grid-template-columns: repeat(3, 1fr); }
+        .topo-row.two { grid-template-columns: repeat(2, 1fr); }
+
+        .steps-list { display: flex; flex-direction: column; gap: .5rem; margin: .75rem 0; }
+        .step-item { display: flex; gap: .75rem; align-items: flex-start; background: #0f1318; border: 1.5px solid #1e2430; border-radius: 8px; padding: .7rem .9rem; transition: border-color .2s; }
+        .step-item:hover { border-color: color-mix(in srgb, var(--mc) 40%, transparent); }
+        .step-num-small {
+          background: color-mix(in srgb, var(--mc) 20%, transparent);
+          color: var(--mc); border-radius: 6px;
+          width: 24px; height: 24px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          font-size: .72rem; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+          margin-top: .1rem;
+        }
+        .step-item-text { font-size: .88rem; color: #cbd5e1; font-weight: 600; }
+        .step-item-note { font-size: .78rem; color: #475569; margin-top: .15rem; }
+
+        code { font-family: 'IBM Plex Mono', monospace; background: #161b24; border: 1px solid #1e2430; padding: .1em .4em; border-radius: 4px; font-size: .82em; color: #7dd3fc; }
+        strong { color: #f1f5f9; }
+        em { color: #a5b4fc; font-style: normal; }
+
+        @media (max-width: 768px) {
+          .sidebar { display: none; }
+          .content { padding: 1.25rem 1rem; }
+          .header { padding: 1rem; }
+          .mod-btn span:not(.mod-badge):not([class]) { display: none; }
+        }
+      `}</style>
+
+      <div className="app" style={{ "--mc": color }}>
+        {/* HEADER */}
+        <header className="header">
+          <div className="header-top">
+            <div className="logo">🔥</div>
+            <div>
+              <div className="header-title">pfSense — Tuto Complet</div>
+              <div className="header-sub">4 modules · FreeBSD · sitka.local</div>
+            </div>
+          </div>
+          <nav className="module-tabs">
+            {modules.map((m, i) => (
+              <button
+                key={m.id}
+                className={`mod-btn ${activeMod === i ? "active" : ""}`}
+                style={{ "--mc": m.color }}
+                onClick={() => { setActiveMod(i); setActiveStep(0); }}
+              >
+                {m.icon} {m.label}
+                <span className="mod-badge">{m.steps.length}</span>
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        {/* LAYOUT */}
+        <div className="layout">
+          {/* SIDEBAR */}
+          <aside className="sidebar" style={{ "--mc": color }}>
+            <div className="sidebar-title">Étapes — {mod.label}</div>
+            {mod.steps.map((s, i) => (
+              <div
+                key={i}
+                className={`sidebar-item ${activeStep === i ? "active" : ""}`}
+                onClick={() => setActiveStep(i)}
+              >
+                <span className="sidebar-num">{String(i + 1).padStart(2, "0")}</span>
+                <span className="sidebar-icon">{s.icon}</span>
+                <span style={{ fontSize: ".8rem", lineHeight: 1.3 }}>{s.title}</span>
+              </div>
+            ))}
+          </aside>
+
+          {/* CONTENT */}
+          <main className="content" style={{ "--mc": color }}>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${((activeStep + 1) / totalSteps) * 100}%` }} />
+            </div>
+
+            <div className="step-header">
+              <div className="step-icon-big">{step.icon}</div>
+              <div>
+                <div className="step-title-big">{step.title}</div>
+                <div className="step-sub">Module {mod.id} · Étape {activeStep + 1}/{totalSteps}</div>
+              </div>
+            </div>
+
+            {step.content}
+
+            <div className="nav-actions">
+              <button className="nav-btn" onClick={() => goStep(activeStep - 1)} disabled={isFirst}>
+                ← Précédent
+              </button>
+              <button className={`nav-btn ${!isLast ? "primary" : ""}`} onClick={() => goStep(activeStep + 1)} disabled={isLast}>
+                Suivant →
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<PfsenseTuto />);
